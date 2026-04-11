@@ -1332,7 +1332,8 @@
         const tm = document.getElementById("teamMode").value;
         const mm = document.getElementById("matchMode").value;
         let arr = [];
-        let proMembers = [], conMembers = [];
+        let proMembers = [],
+          conMembers = [];
         if (tm === "fixed") {
           if (mm === "normal") {
             const proId = document.getElementById("proTeam").value;
@@ -1478,10 +1479,22 @@
         Object.keys(scrs).forEach((k) => {
           let sum = 0,
             cnt = 0;
-          if (scrs[k].lilun > 0) { sum += scrs[k].lilun; cnt++; }
-          if (scrs[k].bolun > 0) { sum += scrs[k].bolun; cnt++; }
-          if (scrs[k].ziyou > 0) { sum += scrs[k].ziyou; cnt++; }
-          if (scrs[k].jiebian > 0) { sum += scrs[k].jiebian; cnt++; }
+          if (scrs[k].lilun > 0) {
+            sum += scrs[k].lilun;
+            cnt++;
+          }
+          if (scrs[k].bolun > 0) {
+            sum += scrs[k].bolun;
+            cnt++;
+          }
+          if (scrs[k].ziyou > 0) {
+            sum += scrs[k].ziyou;
+            cnt++;
+          }
+          if (scrs[k].jiebian > 0) {
+            sum += scrs[k].jiebian;
+            cnt++;
+          }
           const avg = cnt > 0 ? sum / cnt : 0;
           const finalScore = Number(avg.toFixed(1));
           scrs[k].total = finalScore;
@@ -1504,7 +1517,7 @@
         });
         // 收集所有最高分辩手
         const bestList = Object.keys(scrs).filter(
-          (k) => scrs[k].playing && scrs[k].total === maxScore
+          (k) => scrs[k].playing && scrs[k].total === maxScore,
         );
         bestList.forEach((k) => {
           dat.debaters[k].bestCount++;
@@ -1605,7 +1618,14 @@
           .sort((a, b) => b.rate - a.rate);
         let teamHtml = "<table>";
         sorted.forEach((it, i) => {
-          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
+          let cls =
+            i === 0
+              ? "rank-top1"
+              : i === 1
+                ? "rank-top2"
+                : i === 2
+                  ? "rank-top3"
+                  : "";
           teamHtml += `<tr class="${cls}"><td>${i + 1}</td><td>${it.name}</td><td>${it.w}</td><td>${it.l}</td><td>${it.rate.toFixed(1)}%</td></tr>`;
         });
         teamHtml += "</table>";
@@ -1621,7 +1641,14 @@
           .sort((a, b) => b.avg - a.avg);
         let dh = "<table>";
         dr.forEach((it, i) => {
-          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
+          let cls =
+            i === 0
+              ? "rank-top1"
+              : i === 1
+                ? "rank-top2"
+                : i === 2
+                  ? "rank-top3"
+                  : "";
           dh += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td><td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td></tr>`;
         });
         dh += "</table>";
@@ -1632,7 +1659,14 @@
           .sort((a, b) => b[1].bestCount - a[1].bestCount);
         let bh = "<table>";
         bs.forEach(([k, v], i) => {
-          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
+          let cls =
+            i === 0
+              ? "rank-top1"
+              : i === 1
+                ? "rank-top2"
+                : i === 2
+                  ? "rank-top3"
+                  : "";
           bh += `<tr class="${cls}"><td>${k}</td><td>${v.bestCount}</td></tr>`;
         });
         bh += "</table>";
@@ -1675,7 +1709,7 @@
               playingList.push({ name: n, score: s.total });
             }
           });
-          playingList.forEach(p => {
+          playingList.forEach((p) => {
             if (p.score === maxScore) dat.debaters[p.name].bestCount++;
           });
         });
@@ -1684,7 +1718,7 @@
         const dat = d();
         const m = dat.matches.find((x) => String(x.id) === String(id));
         if (!m) return;
-        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><table><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr>`;
+        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div><div class="info-item"><span>获胜依据：</span><span>${m.winReason || "无"}</span></div></div><table><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr>`;
         Object.entries(m.debaterScores).forEach(([n, s]) => {
           html += `<tr class="${s.playing ? "" : "not-playing"}"><td>${n}</td><td>${s.lilun || "-"}</td><td>${s.bolun || "-"}</td><td>${s.ziyou || "-"}</td><td>${s.jiebian || "-"}</td><td>${s.validCount}</td><td>${s.total.toFixed(1)}</td></tr>`;
         });
@@ -1716,7 +1750,14 @@
         }
         let html = "<table>";
         list.forEach((it, i) => {
-          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
+          let cls =
+            i === 0
+              ? "rank-top1"
+              : i === 1
+                ? "rank-top2"
+                : i === 2
+                  ? "rank-top3"
+                  : "";
           html += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td></tr>`;
         });
         html += "</table>";
@@ -1744,7 +1785,8 @@
             }
           });
         });
-        let best = "", maxA = 0;
+        let best = "",
+          maxA = 0;
         Object.values(ps).forEach((p) => {
           p.avg = p.c ? (p.s / p.c).toFixed(2) : "-";
           if (Number(p.avg) > maxA) {
@@ -1754,7 +1796,8 @@
         });
         let html = `<h3>${name} 详情</h3><div class="info-card"><div class="info-item"><span>场次：</span><span>${deb.matchCount}</span></div><div class="info-item"><span>最佳：</span><span>${deb.bestCount}</span></div><div class="info-item"><span>场均：</span><span>${(deb.totalScore / deb.matchCount).toFixed(2)}</span></div><div class="info-item"><span>年级：</span><span>${deb.grade || "未填写"}</span></div><div class="info-item"><span>位置：</span><span>${deb.position || "未填写"}</span></div></div>`;
         if (best) html += `<div class="best-position">推荐位置：${best}</div>`;
-        html += "<table><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr>";
+        html +=
+          "<table><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr>";
         Object.values(ps).forEach((p) => {
           html += `<tr><td>${p.n}</td><td>${p.avg}</td><td>${p.max || "-"}</td><td>${p.min || "-"}</td><td>${p.c}</td></tr>`;
         });
