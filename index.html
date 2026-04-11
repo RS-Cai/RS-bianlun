@@ -1429,6 +1429,7 @@
         arr.forEach((n) => {
           html += `<tr id="row-${n}"><td>${n}</td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="lilun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="bolun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="ziyou" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="jiebian" oninput="calc(this)"></td><td class="c${n}">0</td><td class="t${n}">0.0</td></tr>`;
         });
+        html += "</table>";
         document.getElementById("scoreArea").innerHTML = html;
       }
       function calc(e) {
@@ -1587,8 +1588,8 @@
           topic,
           matchTime: time,
           judge,
-          myTeam: myTeam,
-          myHold: myHold,
+          myTeam,
+          myHold,
           proName,
           conName,
           opponent,
@@ -1616,7 +1617,7 @@
           return;
         }
         let html =
-          "table><thead><tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr></thead><tbody>";
+          "<table><thead><tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr></thead><tbody>";
         list.forEach((x) => {
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
           const tmm = { fixed: "固定", temp: "临时" }[x.teamMode];
@@ -1626,7 +1627,7 @@
           html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td></tr>`;
         });
         document.getElementById("queryResult").innerHTML =
-          html + "</tbody></table>";
+          html + "</tbody></td>";
       }
       function deleteMatch(id) {
         if (!currentUser.isAdmin) return alert("无权操作");
@@ -1673,7 +1674,7 @@
         const dat = d();
         const m = dat.matches.find((x) => String(x.id) === String(id));
         if (!m) return;
-        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><tr> hilab<th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr>`;
+        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><table><thead><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr></thead><tbody>`;
         Object.entries(m.debaterScores).forEach(([n, s]) => {
           html += `<tr class="${s.playing ? "" : "not-playing"}"><td>${n}</td><td>${s.lilun || "-"}</td><td>${s.bolun || "-"}</td><td>${s.ziyou || "-"}</td><td>${s.jiebian || "-"}</td><td>${s.validCount}</td><td>${s.total.toFixed(1)}</td></tr>`;
         });
@@ -1700,7 +1701,7 @@
           })
           .sort((a, b) => b.rate - a.rate);
         let html =
-          "table><thead><tr><th>排名</th><th>队伍</th><th>胜</th><th>负</th><th>胜率</th></tr></thead><tbody>";
+          "<table><thead><tr><th>排名</th><th>队伍</th><th>胜</th><th>负</th><th>胜率</th></tr></thead><tbody>";
         sorted.forEach((it, i) => {
           let cls =
             i === 0
@@ -1723,7 +1724,7 @@
           }))
           .sort((a, b) => b.avg - a.avg);
         let dh =
-          "table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th><th>操作</th></tr></thead><tbody>";
+          "<table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th><th>操作</th></tr></thead><tbody>";
         dr.forEach((it, i) => {
           let cls =
             i === 0
@@ -1741,7 +1742,7 @@
           .filter(([k, v]) => v.bestCount > 0)
           .sort((a, b) => b[1].bestCount - a[1].bestCount);
         let bh =
-          "table><thead><tr><th>辩手</th><th>最佳次数</th></tr></thead><tbody>";
+          "<table><thead><tr><th>辩手</th><th>最佳次数</th></tr></thead><tbody>";
         bs.forEach(([k, v], i) => {
           let cls =
             i === 0
@@ -1773,7 +1774,7 @@
           .map(([n, d]) => ({ n, avg: (d.sum / d.cnt).toFixed(2), cnt: d.cnt }))
           .sort((a, b) => b.avg - a.avg);
         let html = list.length
-          ? "table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th></tr></thead><tbody>"
+          ? "<table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th></tr></thead><tbody>"
           : "<p>无数据</p>";
         list.forEach((it, i) => {
           let cls =
@@ -1823,7 +1824,7 @@
         let html = `<h3>${name} 详情</h3><div class="info-card"><div class="info-item"><span>场次：</span><span>${deb.matchCount}</span></div><div class="info-item"><span>最佳：</span><span>${deb.bestCount}</span></div><div class="info-item"><span>场均：</span><span>${(deb.totalScore / deb.matchCount).toFixed(2)}</span></div><div class="info-item"><span>年级：</span><span>${deb.grade || "未填写"}</span></div><div class="info-item"><span>位置：</span><span>${deb.position || "未填写"}</span></div></div>`;
         if (best) html += `<div class="best-position">推荐位置：${best}</div>`;
         html +=
-          "table><thead><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr></thead><tbody>";
+          "<table><thead><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr></thead><tbody>";
         Object.values(ps).forEach((p) => {
           html += `<tr><td>${p.n}</td><td>${p.avg}</td><td>${p.max || "-"}</td><td>${p.min || "-"}</td><td>${p.c}</td></tr>`;
         });
