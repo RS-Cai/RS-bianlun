@@ -170,8 +170,8 @@
         margin: 10px 0;
       }
       .tip-error {
-        background: #fef0f0;
-        color: #f56c6c;
+        background: #f2f2f2;
+        color: #555;
       }
       .batch-area {
         margin: 12px 0;
@@ -199,6 +199,13 @@
       .not-playing {
         background-color: #f5f5f5;
         color: #999;
+      }
+      /* 队伍分隔背景色 */
+      .pro-team {
+        background-color: #e6f2ff;
+      }
+      .con-team {
+        background-color: #e6ffe6;
       }
       .detail-panel {
         margin-top: 20px;
@@ -1325,17 +1332,14 @@
         const tm = document.getElementById("teamMode").value;
         const mm = document.getElementById("matchMode").value;
         let arr = [];
+        let proMembers = [], conMembers = [];
         if (tm === "fixed") {
           if (mm === "normal") {
-            const p =
-              dat.teams.find(
-                (x) => x.id === document.getElementById("proTeam").value,
-              )?.members || [];
-            const c =
-              dat.teams.find(
-                (x) => x.id === document.getElementById("conTeam").value,
-              )?.members || [];
-            arr = [...p, ...c];
+            const proId = document.getElementById("proTeam").value;
+            const conId = document.getElementById("conTeam").value;
+            proMembers = dat.teams.find((x) => x.id === proId)?.members || [];
+            conMembers = dat.teams.find((x) => x.id === conId)?.members || [];
+            arr = [...proMembers, ...conMembers];
           } else {
             const tid =
               mm === "ai"
@@ -1355,10 +1359,14 @@
               : '<p class="tip tip-error">请选择队伍和参赛辩手</p>';
           return;
         }
-        // ---------- 修正表格起始标签（原来为 <tr><thead><tr>...） ----------
         let html = `<table><thead><tr><th>辩手</th><th>立论</th><th>质询/接质</th><th>自由辩</th><th>结辩</th><th>有效环节</th><th>本场平均分</th></tr></thead><tbody>`;
         arr.forEach((n) => {
-          html += `<tr id="row-${n}"><td>${n}</td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="lilun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="bolun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="ziyou" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="jiebian" oninput="calc(this)"></td><td class="c${n}">0</td><td class="t${n}">0.0</td></tr>`;
+          let rowClass = "";
+          if (tm === "fixed" && mm === "normal") {
+            if (proMembers.includes(n)) rowClass = "pro-team";
+            else if (conMembers.includes(n)) rowClass = "con-team";
+          }
+          html += `<tr id="row-${n}" class="${rowClass}"><td>${n}</td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="lilun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="bolun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="ziyou" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="jiebian" oninput="calc(this)"></td><td class="c${n}">0</td><td class="t${n}">0.0</td></tr>`;
         });
         html += `</tbody></table>`;
         document.getElementById("scoreArea").innerHTML = html;
@@ -1447,8 +1455,6 @@
           }
         }
         let scrs = {},
-          best = "",
-          max = 0,
           overLimit = false;
         document.querySelectorAll(".scoreInput").forEach((i) => {
           const n = i.dataset.n,
@@ -1468,35 +1474,21 @@
           scrs[n][it] = v;
         });
         if (overLimit) return alert("单项得分不能超过10分");
+        let maxScore = 0;
         Object.keys(scrs).forEach((k) => {
           let sum = 0,
             cnt = 0;
-          if (scrs[k].lilun > 0) {
-            sum += scrs[k].lilun;
-            cnt++;
-          }
-          if (scrs[k].bolun > 0) {
-            sum += scrs[k].bolun;
-            cnt++;
-          }
-          if (scrs[k].ziyou > 0) {
-            sum += scrs[k].ziyou;
-            cnt++;
-          }
-          if (scrs[k].jiebian > 0) {
-            sum += scrs[k].jiebian;
-            cnt++;
-          }
+          if (scrs[k].lilun > 0) { sum += scrs[k].lilun; cnt++; }
+          if (scrs[k].bolun > 0) { sum += scrs[k].bolun; cnt++; }
+          if (scrs[k].ziyou > 0) { sum += scrs[k].ziyou; cnt++; }
+          if (scrs[k].jiebian > 0) { sum += scrs[k].jiebian; cnt++; }
           const avg = cnt > 0 ? sum / cnt : 0;
           const finalScore = Number(avg.toFixed(1));
           scrs[k].total = finalScore;
           scrs[k].validCount = cnt;
           scrs[k].playing = cnt > 0;
           if (scrs[k].playing) {
-            if (finalScore > max) {
-              max = finalScore;
-              best = k;
-            }
+            if (finalScore > maxScore) maxScore = finalScore;
             if (!dat.debaters[k])
               dat.debaters[k] = {
                 totalScore: 0,
@@ -1510,7 +1502,13 @@
             dat.debaters[k].matchCount++;
           }
         });
-        if (best) dat.debaters[best].bestCount++;
+        // 收集所有最高分辩手
+        const bestList = Object.keys(scrs).filter(
+          (k) => scrs[k].playing && scrs[k].total === maxScore
+        );
+        bestList.forEach((k) => {
+          dat.debaters[k].bestCount++;
+        });
         dat.matches.push({
           id: Date.now(),
           teamMode: tm,
@@ -1528,7 +1526,8 @@
           debaterScores: scrs,
         });
         s(dat);
-        alert(`保存成功！最佳：${best || "无"}`);
+        const bestStr = bestList.length ? bestList.join("、") : "无";
+        alert(`保存成功！最佳：${bestStr}`);
         refreshScoreTable();
       }
 
@@ -1539,7 +1538,6 @@
         const mode = document.getElementById("qMode").value;
         const tmode = document.getElementById("qTeamMode").value;
         let list = dat.matches;
-        // 按队伍过滤：根据队伍名称匹配
         if (team !== "all") {
           const selectedTeam = dat.teams.find((t) => t.id === team);
           if (selectedTeam) {
@@ -1558,7 +1556,6 @@
             '<p class="tip tip-error">无记录</p>';
           return;
         }
-        // 修复：使用完整的 <table> 标签，模仿正常显示代码的结构
         let html = "<table>";
         list.forEach((x) => {
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
@@ -1583,69 +1580,37 @@
       // ================== 修正 renderStats（正确统计所有队伍胜负 + 修复表格结构） ==================
       function renderStats() {
         const dat = d();
-        // 初始化队伍胜负数据，key 为队伍ID
         const teamStats = {};
         dat.teams.forEach((t) => {
           teamStats[t.id] = { w: 0, l: 0, name: t.name };
         });
-
-        // 遍历所有比赛，分别处理正方和反方
         dat.matches.forEach((g) => {
-          // 只统计固定队伍模式的比赛（临时组队不参与队伍胜负统计）
           if (g.teamMode === "temp") return;
-
-          // 处理正方队伍
           const proTeam = dat.teams.find((t) => t.name === g.proName);
           if (proTeam) {
-            if (g.winner === "pro") {
-              teamStats[proTeam.id].w++;
-            } else {
-              teamStats[proTeam.id].l++;
-            }
+            if (g.winner === "pro") teamStats[proTeam.id].w++;
+            else teamStats[proTeam.id].l++;
           }
-
-          // 处理反方队伍（注意：对外赛或AI赛时，反方可能不是内部队伍，名称可能为"AI"或外部对手）
-          // 只有名称在 teams 中存在的才统计（内部队伍）
           const conTeam = dat.teams.find((t) => t.name === g.conName);
           if (conTeam) {
-            if (g.winner === "con") {
-              teamStats[conTeam.id].w++;
-            } else {
-              teamStats[conTeam.id].l++;
-            }
+            if (g.winner === "con") teamStats[conTeam.id].w++;
+            else teamStats[conTeam.id].l++;
           }
         });
-
-        // 计算胜率并排序
         const sorted = Object.values(teamStats)
           .map((i) => {
             const total = i.w + i.l;
             return { ...i, total, rate: total ? (i.w / total) * 100 : 0 };
           })
           .sort((a, b) => b.rate - a.rate);
-
         let teamHtml = "<table>";
         sorted.forEach((it, i) => {
-          let cls =
-            i === 0
-              ? "rank-top1"
-              : i === 1
-                ? "rank-top2"
-                : i === 2
-                  ? "rank-top3"
-                  : "";
-          teamHtml += `<tr class="${cls}">
-            <td>${i + 1}</td>
-            <td>${it.name}</td>
-            <td>${it.w}</td>
-            <td>${it.l}</td>
-            <td>${it.rate.toFixed(1)}%</td>
-          </tr>`;
+          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
+          teamHtml += `<tr class="${cls}"><td>${i + 1}</td><td>${it.name}</td><td>${it.w}</td><td>${it.l}</td><td>${it.rate.toFixed(1)}%</td></tr>`;
         });
         teamHtml += "</table>";
         document.getElementById("teamStats").innerHTML = teamHtml;
 
-        // 辩手场均得分排名（参照正常版本的简洁表格结构）
         const dr = Object.entries(dat.debaters)
           .filter(([k, v]) => v.matchCount > 0)
           .map(([k, v]) => ({
@@ -1656,43 +1621,19 @@
           .sort((a, b) => b.avg - a.avg);
         let dh = "<table>";
         dr.forEach((it, i) => {
-          let cls =
-            i === 0
-              ? "rank-top1"
-              : i === 1
-                ? "rank-top2"
-                : i === 2
-                  ? "rank-top3"
-                  : "";
-          dh += `<tr class="${cls}">
-            <td>${i + 1}</td>
-            <td>${it.n}</td>
-            <td>${it.avg}</td>
-            <td>${it.cnt}</td>
-            <td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td>
-          </tr>`;
+          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
+          dh += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td><td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td></tr>`;
         });
         dh += "</table>";
         document.getElementById("debaterRank").innerHTML = dh;
 
-        // 最佳辩手次数
         const bs = Object.entries(dat.debaters)
           .filter(([k, v]) => v.bestCount > 0)
           .sort((a, b) => b[1].bestCount - a[1].bestCount);
         let bh = "<table>";
         bs.forEach(([k, v], i) => {
-          let cls =
-            i === 0
-              ? "rank-top1"
-              : i === 1
-                ? "rank-top2"
-                : i === 2
-                  ? "rank-top3"
-                  : "";
-          bh += `<tr class="${cls}">
-            <td>${k}</td>
-            <td>${v.bestCount}</td>
-          </tr>`;
+          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
+          bh += `<tr class="${cls}"><td>${k}</td><td>${v.bestCount}</td></tr>`;
         });
         bh += "</table>";
         document.getElementById("bestCount").innerHTML = bh;
@@ -1715,8 +1656,8 @@
           dat.debaters[n].bestCount = 0;
         }
         dat.matches.forEach((m) => {
-          let best = "",
-            max = 0;
+          let maxScore = 0;
+          const playingList = [];
           Object.entries(m.debaterScores).forEach(([n, s]) => {
             if (s.playing) {
               if (!dat.debaters[n])
@@ -1730,13 +1671,13 @@
                 };
               dat.debaters[n].totalScore += s.total;
               dat.debaters[n].matchCount++;
-              if (s.total > max) {
-                max = s.total;
-                best = n;
-              }
+              if (s.total > maxScore) maxScore = s.total;
+              playingList.push({ name: n, score: s.total });
             }
           });
-          if (best) dat.debaters[best].bestCount++;
+          playingList.forEach(p => {
+            if (p.score === maxScore) dat.debaters[p.name].bestCount++;
+          });
         });
       }
       function showMatchDetail(id) {
@@ -1775,14 +1716,7 @@
         }
         let html = "<table>";
         list.forEach((it, i) => {
-          let cls =
-            i === 0
-              ? "rank-top1"
-              : i === 1
-                ? "rank-top2"
-                : i === 2
-                  ? "rank-top3"
-                  : "";
+          let cls = i === 0 ? "rank-top1" : i === 1 ? "rank-top2" : i === 2 ? "rank-top3" : "";
           html += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td></tr>`;
         });
         html += "</table>";
@@ -1810,8 +1744,7 @@
             }
           });
         });
-        let best = "",
-          maxA = 0;
+        let best = "", maxA = 0;
         Object.values(ps).forEach((p) => {
           p.avg = p.c ? (p.s / p.c).toFixed(2) : "-";
           if (Number(p.avg) > maxA) {
@@ -1821,8 +1754,7 @@
         });
         let html = `<h3>${name} 详情</h3><div class="info-card"><div class="info-item"><span>场次：</span><span>${deb.matchCount}</span></div><div class="info-item"><span>最佳：</span><span>${deb.bestCount}</span></div><div class="info-item"><span>场均：</span><span>${(deb.totalScore / deb.matchCount).toFixed(2)}</span></div><div class="info-item"><span>年级：</span><span>${deb.grade || "未填写"}</span></div><div class="info-item"><span>位置：</span><span>${deb.position || "未填写"}</span></div></div>`;
         if (best) html += `<div class="best-position">推荐位置：${best}</div>`;
-        html +=
-          "<table><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr>";
+        html += "<table><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr>";
         Object.values(ps).forEach((p) => {
           html += `<tr><td>${p.n}</td><td>${p.avg}</td><td>${p.max || "-"}</td><td>${p.min || "-"}</td><td>${p.c}</td></tr>`;
         });
@@ -1841,26 +1773,41 @@
         a.download = "辩论队数据.json";
         a.click();
       }
-      function importData() {
-        if (!confirm("将覆盖全部数据，不可恢复！确定继续吗？")) return;
-        const i = document.createElement("input");
-        i.type = "file";
-        i.accept = ".json";
-        i.onchange = (e) => {
-          const r = new FileReader();
-          r.onload = (ev) => {
+      async function importData() {
+        if (!currentUser.isAdmin) return alert("只有管理员可以导入数据");
+        if (!confirm("将覆盖【云端】全部数据，不可恢复！确定继续吗？")) return;
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json";
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = async (ev) => {
             try {
-              const j = JSON.parse(ev.target.result);
-              localStorage.debateData = JSON.stringify(j);
-              alert("导入成功");
-              location.reload();
-            } catch (e) {
-              alert("格式错误");
+              const imported = JSON.parse(ev.target.result);
+              if (!imported.teams || !imported.matches || !imported.debaters) {
+                return alert("文件格式不正确，缺少必要字段");
+              }
+              localStorage.debateData = JSON.stringify(imported);
+              showLoading("正在将导入的数据同步到云端...");
+              try {
+                await saveToSupabase();
+                hideLoading();
+                alert("导入成功，数据已同步至云端");
+                location.reload();
+              } catch (cloudErr) {
+                hideLoading();
+                console.error("云端同步失败:", cloudErr);
+                alert("本地已更新，但云端同步失败，请检查网络或重试");
+              }
+            } catch (parseErr) {
+              alert("文件解析失败，格式错误");
             }
           };
-          r.readAsText(e.target.files[0]);
+          reader.readAsText(file);
         };
-        i.click();
+        input.click();
       }
       async function clearAll() {
         if (!currentUser.isAdmin) return alert("只有管理员可以清空数据");
