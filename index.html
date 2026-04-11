@@ -692,14 +692,13 @@
           </div>
           <div class="form-row" style="display: block">
             <label style="margin-bottom: 6px; display: block"
-              >批量添加（姓名，换行分隔）</label
+              >批量添加（中文逗号分隔）</label
             >
             <textarea
               id="batchInput"
               rows="4"
               style="width: 100%"
-              placeholder="张三
-李四"
+              placeholder="张三，李四"
             ></textarea>
             <button
               class="btn-success"
@@ -1246,11 +1245,11 @@
 
         if (!id || !txt) return alert("输入为空");
 
-        const lines = txt.split("\n").filter(Boolean);
+        const names = txt.split("，").filter(Boolean);
         const t = dat.teams.find((x) => x.id === id);
 
-        lines.forEach((line) => {
-          const n = line.trim();
+        names.forEach((name) => {
+          const n = name.trim();
           if (!n) return;
           if (!t.members.includes(n)) {
             t.members.push(n);
@@ -1518,11 +1517,13 @@
         }
         let scrs = {},
           best = "",
-          max = 0;
+          max = 0,
+          overLimit = false;
         document.querySelectorAll(".scoreInput").forEach((i) => {
           const n = i.dataset.n,
             it = i.dataset.i,
             v = parseFloat(i.value) || 0;
+          if (v > 10) overLimit = true;
           if (!scrs[n])
             scrs[n] = {
               lilun: 0,
@@ -1535,6 +1536,7 @@
             };
           scrs[n][it] = v;
         });
+        if (overLimit) return alert("单项得分不能超过10分");
         Object.keys(scrs).forEach((k) => {
           let sum = 0,
             cnt = 0;
@@ -1555,12 +1557,14 @@
             cnt++;
           }
           const avg = cnt > 0 ? sum / cnt : 0;
-          scrs[k].total = avg;
+          // 10分制，使用四舍五入保留一位小数进行统计
+          const finalScore = Number(avg.toFixed(1));
+          scrs[k].total = finalScore;
           scrs[k].validCount = cnt;
           scrs[k].playing = cnt > 0;
           if (scrs[k].playing) {
-            if (avg > max) {
-              max = avg;
+            if (finalScore > max) {
+              max = finalScore;
               best = k;
             }
             if (!dat.debaters[k])
@@ -1572,7 +1576,7 @@
                 position: "",
                 school_name: currentUser.schoolName,
               };
-            dat.debaters[k].totalScore += avg;
+            dat.debaters[k].totalScore += finalScore;
             dat.debaters[k].matchCount++;
           }
         });
@@ -1617,9 +1621,9 @@
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
           const tmm = { fixed: "固定", temp: "临时" }[x.teamMode];
           const delBtn = currentUser.isAdmin
-            ? `<button class="btn-small btn-danger" onclick="deleteMatch(${x.id})">删除</button>`
+            ? `<button class="btn-small btn-danger" onclick="deleteMatch('${x.id}')">删除</button>`
             : "";
-          html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail(${x.id})">详情</button>${delBtn}</td></tr>`;
+          html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td></tr>`;
         });
         document.getElementById("queryResult").innerHTML = html + "</table>";
       }
@@ -1666,7 +1670,7 @@
       }
       function showMatchDetail(id) {
         const dat = d();
-        const m = dat.matches.find((x) => x.id === id);
+        const m = dat.matches.find((x) => String(x.id) === String(id));
         if (!m) return;
         let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><table><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr>`;
         Object.entries(m.debaterScores).forEach(([n, s]) => {
