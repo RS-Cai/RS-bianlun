@@ -682,18 +682,6 @@
               style="width: 100%"
               placeholder="姓名"
             />
-            <input
-              type="text"
-              id="newGrade"
-              style="width: 100%; margin-top: 8px"
-              placeholder="年级"
-            />
-            <input
-              type="text"
-              id="newPosition"
-              style="width: 100%; margin-top: 8px"
-              placeholder="队内位置"
-            />
             <button
               class="btn-primary"
               style="margin-top: 8px"
@@ -704,14 +692,14 @@
           </div>
           <div class="form-row" style="display: block">
             <label style="margin-bottom: 6px; display: block"
-              >批量添加（格式：姓名，年级，位置 | 换行分隔）</label
+              >批量添加（姓名，换行分隔）</label
             >
             <textarea
               id="batchInput"
               rows="4"
               style="width: 100%"
-              placeholder="张三，高一，立论
-李四，高二，结辩"
+              placeholder="张三
+李四"
             ></textarea>
             <button
               class="btn-success"
@@ -786,12 +774,44 @@
 
       // 当前用户信息
       let currentUser = {
-        accessKey: "",
+        accessKey: localStorage.getItem("lastAccessKey") || "",
         schoolName: "",
         isAdmin: false,
         schema: "", // 动态存储从 cloud_auth_main 获取的 data_dir
       };
       let tempDebaters = [];
+
+      // 页面加载检查
+      window.onload = async function () {
+        if (currentUser.accessKey) {
+          showLoading("正在恢复登录状态...");
+          try {
+            // 自动重新验证
+            const { data, error } = await sbClient
+              .from(SUPABASE_CONFIG.AUTH_TABLE)
+              .select("access_key, data_dir, school_name, is_admin")
+              .eq("access_key", currentUser.accessKey)
+              .single();
+
+            if (!error && data) {
+              currentUser = {
+                accessKey: data.access_key,
+                schoolName: data.school_name,
+                isAdmin: data.is_admin,
+                schema: data.data_dir || "public",
+              };
+              await loadDataFromSupabase();
+              afterLogin();
+            } else {
+              localStorage.removeItem("lastAccessKey");
+            }
+          } catch (e) {
+            console.error("自动恢复失败:", e);
+          } finally {
+            hideLoading();
+          }
+        }
+      };
 
       // ==============================================
       // 登录验证逻辑（适配 cloud_auth_main 表）
@@ -820,8 +840,11 @@
             accessKey: data.access_key,
             schoolName: data.school_name,
             isAdmin: data.is_admin,
-            schema: data.data_dir || "cloud_public", // 如果 data_dir 为空则兜底
+            schema: data.data_dir || "public", // 如果 data_dir 为空则兜底
           };
+
+          // 保存状态到本地
+          localStorage.setItem("lastAccessKey", data.access_key);
 
           // 加载数据
           await loadDataFromSupabase();
@@ -865,6 +888,9 @@
             hideLoading();
             return alert("该密钥未配置对应的数据文件夹(data_dir)");
           }
+
+          // 保存状态到本地
+          localStorage.setItem("lastAccessKey", data.access_key);
 
           // 加载数据
           await loadDataFromSupabase();
@@ -1185,13 +1211,11 @@
         document.getElementById("teamList").textContent =
           t?.members.join("、") || "暂无队员";
       }
-      // 新增辩手：增加年级、位置字段
+      // 新增辩手
       function addOne() {
         const dat = d();
         const id = document.getElementById("selTeam").value;
         const n = document.getElementById("newName").value.trim();
-        const grade = document.getElementById("newGrade").value.trim();
-        const position = document.getElementById("newPosition").value.trim();
 
         if (!id || !n) return alert("请选择队伍并输入姓名");
         const t = dat.teams.find((x) => x.id === id);
@@ -1203,15 +1227,15 @@
             totalScore: 0,
             matchCount: 0,
             bestCount: 0,
-            grade: grade,
-            position: position,
+            grade: "",
+            position: "",
             school_name: currentUser.schoolName,
           };
         s(dat);
         renderTeam();
         refreshScoreTable();
       }
-      // 批量添加辩手：适配新字段
+      // 批量添加辩手
       function addBatch() {
         const dat = d();
         const id = document.getElementById("selTeam").value;
@@ -1223,7 +1247,7 @@
         const t = dat.teams.find((x) => x.id === id);
 
         lines.forEach((line) => {
-          const [n, grade, position] = line.split("，").map((x) => x.trim());
+          const n = line.trim();
           if (!n) return;
           if (!t.members.includes(n)) {
             t.members.push(n);
@@ -1232,8 +1256,8 @@
                 totalScore: 0,
                 matchCount: 0,
                 bestCount: 0,
-                grade: grade || "",
-                position: position || "",
+                grade: "",
+                position: "",
                 school_name: currentUser.schoolName,
               };
           }
@@ -1589,9 +1613,53 @@
         list.forEach((x) => {
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
           const tmm = { fixed: "固定", temp: "临时" }[x.teamMode];
-          html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail(${x.id})">查看详情</button></td></tr>`;
+          const delBtn = currentUser.isAdmin
+            ? `<button class="btn-small btn-danger" onclick="deleteMatch(${x.id})">删除</button>`
+            : "";
+          html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail(${x.id})">详情</button>${delBtn}</td></tr>`;
         });
         document.getElementById("queryResult").innerHTML = html + "</table>";
+      }
+      function deleteMatch(id) {
+        if (!currentUser.isAdmin) return alert("无权操作");
+        if (!confirm("确定要永久删除这场比赛记录吗？")) return;
+        const dat = d();
+        dat.matches = dat.matches.filter((m) => m.id !== id);
+        recalculateDebaterStats(dat);
+        s(dat);
+        doQuery();
+        alert("删除成功并已同步云端");
+      }
+      function recalculateDebaterStats(dat) {
+        for (let n in dat.debaters) {
+          dat.debaters[n].totalScore = 0;
+          dat.debaters[n].matchCount = 0;
+          dat.debaters[n].bestCount = 0;
+        }
+        dat.matches.forEach((m) => {
+          let best = "",
+            max = 0;
+          Object.entries(m.debaterScores).forEach(([n, s]) => {
+            if (s.playing) {
+              if (!dat.debaters[n])
+                dat.debaters[n] = {
+                  totalScore: 0,
+                  matchCount: 0,
+                  bestCount: 0,
+                  grade: "",
+                  position: "",
+                  school_name: currentUser.schoolName,
+                };
+              dat.debaters[n].totalScore += s.total;
+              dat.debaters[n].matchCount++;
+              if (s.total > max) {
+                max = s.total;
+                best = n;
+              }
+            }
+          });
+          if (best) dat.debaters[best].bestCount++;
+        });
       }
       function showMatchDetail(id) {
         const dat = d();
@@ -1787,9 +1855,28 @@
         localStorage.removeItem("debateData");
         location.reload();
       }
+      function logout() {
+        localStorage.removeItem("lastAccessKey");
+        location.reload();
+      }
+
       function afterLogin() {
         document.getElementById("loginPage").style.display = "none";
         document.getElementById("mainPage").style.display = "flex";
+
+        // 增加退出登录按钮
+        if (!document.getElementById("logoutBtn")) {
+          const nav = document.querySelector(".nav");
+          if (nav) {
+            const btn = document.createElement("button");
+            btn.id = "logoutBtn";
+            btn.className = "btn btn-danger";
+            btn.style = "margin-left:auto;margin-right:20px;";
+            btn.innerText = "退出登录";
+            btn.onclick = logout;
+            nav.appendChild(btn);
+          }
+        }
 
         // 权限控制：如果不是管理员，隐藏所有增删改功能
         if (!currentUser.isAdmin) {
