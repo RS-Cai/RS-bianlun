@@ -907,6 +907,9 @@
       // 数据加载/保存逻辑（适配 debaters/matches/teams 表）
       // ==============================================
       async function loadDataFromSupabase() {
+        // 加载前先彻底清除本地旧数据，确保以云端为准
+        localStorage.removeItem("debateData");
+
         try {
           // 使用 .schema() 方法动态调取对应的文件夹数据
           const { data: teamsData, error: teamsError } = await sbClient
@@ -1850,10 +1853,48 @@
         };
         i.click();
       }
-      function clearAll() {
-        if (!confirm("将覆盖全部数据，不可恢复！确定继续吗？")) return;
-        localStorage.removeItem("debateData");
-        location.reload();
+      async function clearAll() {
+        if (!currentUser.isAdmin) return alert("只有管理员可以清空数据");
+        if (
+          !confirm(
+            "警告：此操作将永久删除【云端】和本地的所有比赛、辩手、队伍数据！不可恢复！确定继续吗？",
+          )
+        )
+          return;
+
+        showLoading("正在彻底清空云端数据...");
+        try {
+          // 1. 同步清空云端三张表的数据
+          const { error: err1 } = await sbClient
+            .schema(currentUser.schema)
+            .from("teams")
+            .delete()
+            .eq("school_name", currentUser.schoolName);
+          const { error: err2 } = await sbClient
+            .schema(currentUser.schema)
+            .from("matches")
+            .delete()
+            .eq("school_name", currentUser.schoolName);
+          const { error: err3 } = await sbClient
+            .schema(currentUser.schema)
+            .from("debaters")
+            .delete()
+            .eq("school_name", currentUser.schoolName);
+
+          if (err1 || err2 || err3)
+            throw new Error("云端部分数据删除失败，请检查网络");
+
+          // 2. 清除本地缓存
+          localStorage.removeItem("debateData");
+
+          alert("已成功清空云端及本地数据");
+          location.reload();
+        } catch (e) {
+          console.error("清空失败:", e);
+          alert("操作失败: " + e.message);
+        } finally {
+          hideLoading();
+        }
       }
       function logout() {
         localStorage.removeItem("lastAccessKey");
