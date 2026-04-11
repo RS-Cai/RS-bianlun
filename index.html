@@ -1355,7 +1355,7 @@
               : '<p class="tip tip-error">请选择队伍和参赛辩手</p>';
           return;
         }
-        let html = `<table><thead><tr><th>辩手</th><th>立论</th><th>质询/接质</th><th>自由辩</th><th>结辩</th><th>有效环节</th><th>本场平均分</th></tr></thead><tbody>`;
+        let html = `<tr><thead><tr><th>辩手</th><th>立论</th><th>质询/接质</th><th>自由辩</th><th>结辩</th><th>有效环节</th><th>本场平均分</th></tr></thead><tbody>`;
         arr.forEach((n) => {
           html += `<tr id="row-${n}"><td>${n}</td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="lilun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="bolun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="ziyou" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="jiebian" oninput="calc(this)"></td><td class="c${n}">0</td><td class="t${n}">0.0</td></tr>`;
         });
@@ -1558,11 +1558,7 @@
           return;
         }
         // 修复：使用完整的 <table> 标签，模仿正常显示代码的结构
-        let html = `<td>
-          <thead>
-            <tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr>
-          </thead>
-          <tbody>`;
+        let html = "<table>";
         list.forEach((x) => {
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
           const tmm = { fixed: "固定", temp: "临时" }[x.teamMode];
@@ -1579,11 +1575,11 @@
             <td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td>
           </tr>`;
         });
-        html += `</tbody></table>`;
+        html += "</table>";
         document.getElementById("queryResult").innerHTML = html;
       }
 
-      // ================== 修正 renderStats（正确统计所有队伍胜负） ==================
+      // ================== 修正 renderStats（正确统计所有队伍胜负 + 修复表格结构） ==================
       function renderStats() {
         const dat = d();
         // 初始化队伍胜负数据，key 为队伍ID
@@ -1627,11 +1623,7 @@
           })
           .sort((a, b) => b.rate - a.rate);
 
-        let html = `<table>
-          <thead>
-            <tr><th>排名</th><th>队伍</th><th>胜</th><th>负</th><th>胜率</th></tr>
-          </thead>
-          <tbody>`;
+        let teamHtml = "<table>";
         sorted.forEach((it, i) => {
           let cls =
             i === 0
@@ -1641,7 +1633,7 @@
                 : i === 2
                   ? "rank-top3"
                   : "";
-          html += `<tr class="${cls}">
+          teamHtml += `<tr class="${cls}">
             <td>${i + 1}</td>
             <td>${it.name}</td>
             <td>${it.w}</td>
@@ -1649,10 +1641,10 @@
             <td>${it.rate.toFixed(1)}%</td>
           </tr>`;
         });
-        html += `</tbody></table>`;
-        document.getElementById("teamStats").innerHTML = html;
+        teamHtml += "</table>";
+        document.getElementById("teamStats").innerHTML = teamHtml;
 
-        // 以下是辩手排名和最佳辩手，与原逻辑相同，未改动
+        // 辩手场均得分排名（参照正常版本的简洁表格结构）
         const dr = Object.entries(dat.debaters)
           .filter(([k, v]) => v.matchCount > 0)
           .map(([k, v]) => ({
@@ -1661,11 +1653,7 @@
             cnt: v.matchCount,
           }))
           .sort((a, b) => b.avg - a.avg);
-        let dh = `</table>
-          <thead>
-            <tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th><th>操作</th></tr>
-          </thead>
-          <tbody>`;
+        let dh = "<table>";
         dr.forEach((it, i) => {
           let cls =
             i === 0
@@ -1683,17 +1671,14 @@
             <td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td>
           </tr>`;
         });
-        dh += `</tbody></tr>`;
+        dh += "</table>";
         document.getElementById("debaterRank").innerHTML = dh;
 
+        // 最佳辩手次数
         const bs = Object.entries(dat.debaters)
           .filter(([k, v]) => v.bestCount > 0)
           .sort((a, b) => b[1].bestCount - a[1].bestCount);
-        let bh = `</table>
-          <thead>
-            <tr><th>辩手</th><th>最佳次数</th></tr>
-          </thead>
-          <tbody>`;
+        let bh = "<table>";
         bs.forEach(([k, v], i) => {
           let cls =
             i === 0
@@ -1708,7 +1693,7 @@
             <td>${v.bestCount}</td>
           </tr>`;
         });
-        bh += `</tbody></table>`;
+        bh += "</table>";
         document.getElementById("bestCount").innerHTML = bh;
       }
 
@@ -1757,11 +1742,11 @@
         const dat = d();
         const m = dat.matches.find((x) => String(x.id) === String(id));
         if (!m) return;
-        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><td><thead><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr></thead><tbody>`;
+        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><table><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr>`;
         Object.entries(m.debaterScores).forEach(([n, s]) => {
           html += `<tr class="${s.playing ? "" : "not-playing"}"><td>${n}</td><td>${s.lilun || "-"}</td><td>${s.bolun || "-"}</td><td>${s.ziyou || "-"}</td><td>${s.jiebian || "-"}</td><td>${s.validCount}</td><td>${s.total.toFixed(1)}</td></tr>`;
         });
-        html += `</tbody></table>`;
+        html += `</table>`;
         const p = document.getElementById("matchDetail");
         p.innerHTML = html;
         p.style.display = "block";
@@ -1787,7 +1772,7 @@
           document.getElementById("positionRank").innerHTML = "<p>无数据</p>";
           return;
         }
-        let html = `<table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th></tr></thead><tbody>`;
+        let html = "<table>";
         list.forEach((it, i) => {
           let cls =
             i === 0
@@ -1799,7 +1784,7 @@
                   : "";
           html += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td></tr>`;
         });
-        html += `</tbody></table>`;
+        html += "</table>";
         document.getElementById("positionRank").innerHTML = html;
       }
       function showDebaterDetail(name) {
@@ -1835,11 +1820,12 @@
         });
         let html = `<h3>${name} 详情</h3><div class="info-card"><div class="info-item"><span>场次：</span><span>${deb.matchCount}</span></div><div class="info-item"><span>最佳：</span><span>${deb.bestCount}</span></div><div class="info-item"><span>场均：</span><span>${(deb.totalScore / deb.matchCount).toFixed(2)}</span></div><div class="info-item"><span>年级：</span><span>${deb.grade || "未填写"}</span></div><div class="info-item"><span>位置：</span><span>${deb.position || "未填写"}</span></div></div>`;
         if (best) html += `<div class="best-position">推荐位置：${best}</div>`;
-        html += `<table><thead><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr></thead><tbody>`;
+        html +=
+          "<table><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr>";
         Object.values(ps).forEach((p) => {
           html += `<tr><td>${p.n}</td><td>${p.avg}</td><td>${p.max || "-"}</td><td>${p.min || "-"}</td><td>${p.c}</td></tr>`;
         });
-        html += `</tbody></table>`;
+        html += `</table>`;
         const p = document.getElementById("debaterDetail");
         p.innerHTML = html;
         p.style.display = "block";
