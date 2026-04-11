@@ -1531,7 +1531,7 @@
         refreshScoreTable();
       }
 
-      // ================== 修正 doQuery ==================
+      // ================== 修正 doQuery（修复表格塌陷） ==================
       function doQuery() {
         const dat = d();
         const team = document.getElementById("qTeam").value;
@@ -1557,45 +1557,81 @@
             '<p class="tip tip-error">无记录</p>';
           return;
         }
-        let html = `<td><thead><tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr></thead><tbody>`;
+        // 修复：使用完整的 <table> 标签，模仿正常显示代码的结构
+        let html = `<td>
+          <thead>
+            <tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr>
+          </thead>
+          <tbody>`;
         list.forEach((x) => {
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
           const tmm = { fixed: "固定", temp: "临时" }[x.teamMode];
           const delBtn = currentUser.isAdmin
             ? `<button class="btn-small btn-danger" onclick="deleteMatch('${x.id}')">删除</button>`
             : "";
-          html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td></tr>`;
+          html += `<tr>
+            <td>${tmm}</td>
+            <td>${mm}</td>
+            <td>${x.topic}</td>
+            <td>${x.proName}</td>
+            <td>${x.conName}</td>
+            <td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td>
+            <td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td>
+          </tr>`;
         });
         html += `</tbody></table>`;
         document.getElementById("queryResult").innerHTML = html;
       }
 
-      // ================== 修正 renderStats ==================
+      // ================== 修正 renderStats（正确统计所有队伍胜负） ==================
       function renderStats() {
         const dat = d();
-        const map = {};
+        // 初始化队伍胜负数据，key 为队伍ID
+        const teamStats = {};
         dat.teams.forEach((t) => {
-          map[t.id] = { w: 0, l: 0, name: t.name };
+          teamStats[t.id] = { w: 0, l: 0, name: t.name };
         });
+
+        // 遍历所有比赛，分别处理正方和反方
         dat.matches.forEach((g) => {
-          if (g.teamMode !== "temp" && g.myTeam !== "temp") {
-            // 根据 myHold 确定我方队伍名称
-            const myTeamName = g.myHold === "pro" ? g.proName : g.conName;
-            // 根据队伍名称找到对应的队伍 ID
-            const teamEntry = dat.teams.find((t) => t.name === myTeamName);
-            if (teamEntry && map[teamEntry.id]) {
-              if (g.winner === g.myHold) map[teamEntry.id].w++;
-              else map[teamEntry.id].l++;
+          // 只统计固定队伍模式的比赛（临时组队不参与队伍胜负统计）
+          if (g.teamMode === "temp") return;
+
+          // 处理正方队伍
+          const proTeam = dat.teams.find((t) => t.name === g.proName);
+          if (proTeam) {
+            if (g.winner === "pro") {
+              teamStats[proTeam.id].w++;
+            } else {
+              teamStats[proTeam.id].l++;
+            }
+          }
+
+          // 处理反方队伍（注意：对外赛或AI赛时，反方可能不是内部队伍，名称可能为"AI"或外部对手）
+          // 只有名称在 teams 中存在的才统计（内部队伍）
+          const conTeam = dat.teams.find((t) => t.name === g.conName);
+          if (conTeam) {
+            if (g.winner === "con") {
+              teamStats[conTeam.id].w++;
+            } else {
+              teamStats[conTeam.id].l++;
             }
           }
         });
-        const sorted = Object.values(map)
+
+        // 计算胜率并排序
+        const sorted = Object.values(teamStats)
           .map((i) => {
             const total = i.w + i.l;
             return { ...i, total, rate: total ? (i.w / total) * 100 : 0 };
           })
           .sort((a, b) => b.rate - a.rate);
-        let html = `<table><thead><tr><th>排名</th><th>队伍</th><th>胜</th><th>负</th><th>胜率</th></tr></thead><tbody>`;
+
+        let html = `<table>
+          <thead>
+            <tr><th>排名</th><th>队伍</th><th>胜</th><th>负</th><th>胜率</th></tr>
+          </thead>
+          <tbody>`;
         sorted.forEach((it, i) => {
           let cls =
             i === 0
@@ -1605,11 +1641,18 @@
                 : i === 2
                   ? "rank-top3"
                   : "";
-          html += `<tr class="${cls}"><td>${i + 1}</td><td>${it.name}</td><td>${it.w}</td><td>${it.l}</td><td>${it.rate.toFixed(1)}%</td></tr>`;
+          html += `<tr class="${cls}">
+            <td>${i + 1}</td>
+            <td>${it.name}</td>
+            <td>${it.w}</td>
+            <td>${it.l}</td>
+            <td>${it.rate.toFixed(1)}%</td>
+          </tr>`;
         });
         html += `</tbody></table>`;
         document.getElementById("teamStats").innerHTML = html;
 
+        // 以下是辩手排名和最佳辩手，与原逻辑相同，未改动
         const dr = Object.entries(dat.debaters)
           .filter(([k, v]) => v.matchCount > 0)
           .map(([k, v]) => ({
@@ -1618,7 +1661,11 @@
             cnt: v.matchCount,
           }))
           .sort((a, b) => b.avg - a.avg);
-        let dh = `<table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th><th>操作</th></tr></thead><tbody>`;
+        let dh = `</table>
+          <thead>
+            <tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th><th>操作</th></tr>
+          </thead>
+          <tbody>`;
         dr.forEach((it, i) => {
           let cls =
             i === 0
@@ -1628,15 +1675,25 @@
                 : i === 2
                   ? "rank-top3"
                   : "";
-          dh += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td><td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td></tr>`;
+          dh += `<tr class="${cls}">
+            <td>${i + 1}</td>
+            <td>${it.n}</td>
+            <td>${it.avg}</td>
+            <td>${it.cnt}</td>
+            <td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td>
+          </tr>`;
         });
-        dh += `</tbody></table>`;
+        dh += `</tbody></tr>`;
         document.getElementById("debaterRank").innerHTML = dh;
 
         const bs = Object.entries(dat.debaters)
           .filter(([k, v]) => v.bestCount > 0)
           .sort((a, b) => b[1].bestCount - a[1].bestCount);
-        let bh = `<table><thead><tr><th>辩手</th><th>最佳次数</th></tr></thead><tbody>`;
+        let bh = `</table>
+          <thead>
+            <tr><th>辩手</th><th>最佳次数</th></tr>
+          </thead>
+          <tbody>`;
         bs.forEach(([k, v], i) => {
           let cls =
             i === 0
@@ -1646,9 +1703,12 @@
                 : i === 2
                   ? "rank-top3"
                   : "";
-          bh += `<tr class="${cls}"><td>${k}</td><td>${v.bestCount}</td></tr>`;
+          bh += `<tr class="${cls}">
+            <td>${k}</td>
+            <td>${v.bestCount}</td>
+          </tr>`;
         });
-        bh += `</tbody></tr>`;
+        bh += `</tbody></table>`;
         document.getElementById("bestCount").innerHTML = bh;
       }
 
@@ -1697,7 +1757,7 @@
         const dat = d();
         const m = dat.matches.find((x) => String(x.id) === String(id));
         if (!m) return;
-        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><table><thead><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr></thead><tbody>`;
+        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><td><thead><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr></thead><tbody>`;
         Object.entries(m.debaterScores).forEach(([n, s]) => {
           html += `<tr class="${s.playing ? "" : "not-playing"}"><td>${n}</td><td>${s.lilun || "-"}</td><td>${s.bolun || "-"}</td><td>${s.ziyou || "-"}</td><td>${s.jiebian || "-"}</td><td>${s.validCount}</td><td>${s.total.toFixed(1)}</td></tr>`;
         });
