@@ -739,20 +739,18 @@
       };
 
       // 初始化 Supabase 客户端
-      // 增加 auth 配置以解决某些浏览器（如 Edge/Safari）“Tracking Prevention”屏蔽存储访问的问题
       const sbClient = window.supabase.createClient(
         SUPABASE_CONFIG.URL,
         SUPABASE_CONFIG.KEY,
         {
           auth: {
-            persistSession: false, // 不持久化会话，避开存储拦截
+            persistSession: false,
             autoRefreshToken: false,
             detectSessionInUrl: false,
           },
         },
       );
 
-      // 加载提示工具函数
       function showLoading(text) {
         const loading = document.createElement("div");
         loading.id = "supabaseLoadingOverlay";
@@ -771,27 +769,23 @@
         if (loading) loading.remove();
       }
 
-      // 当前用户信息
       let currentUser = {
         accessKey: sessionStorage.getItem("lastAccessKey") || "",
         schoolName: "",
         isAdmin: false,
-        schema: "", // 动态存储从 cloud_auth_main 获取的 data_dir
+        schema: "",
       };
       let tempDebaters = [];
 
-      // 页面加载检查
       window.onload = async function () {
         if (currentUser.accessKey) {
           showLoading("正在恢复登录状态...");
           try {
-            // 自动重新验证
             const { data, error } = await sbClient
               .from(SUPABASE_CONFIG.AUTH_TABLE)
               .select("access_key, data_dir, school_name, is_admin")
               .eq("access_key", currentUser.accessKey)
               .single();
-
             if (!error && data) {
               currentUser = {
                 accessKey: data.access_key,
@@ -812,40 +806,28 @@
         }
       };
 
-      // ==============================================
-      // 登录验证逻辑（适配 cloud_auth_main 表）
-      // ==============================================
       async function loginCloud() {
         const accessKey = document.getElementById("cloudToken").value.trim();
         if (!accessKey) return alert("请输入访问标识");
-
         showLoading("正在识别访问标识，请稍等...");
         try {
-          // 查询 cloud_auth_main 表验证访问密钥
           const { data, error } = await sbClient
             .from(SUPABASE_CONFIG.AUTH_TABLE)
             .select("access_key, data_dir, school_name, is_admin")
             .eq("access_key", accessKey)
             .single();
-
           if (error || !data) {
             hideLoading();
             console.error("登录验证失败:", error);
             return alert("无权限或访问标识错误");
           }
-
-          // 核心逻辑：schema 完全由数据库中的 data_dir 字段决定
           currentUser = {
             accessKey: data.access_key,
             schoolName: data.school_name,
             isAdmin: data.is_admin,
-            schema: data.data_dir || "public", // 如果 data_dir 为空则兜底
+            schema: data.data_dir || "public",
           };
-
-          // 保存状态到会话存储（刷新不掉线，关闭即失效）
           sessionStorage.setItem("lastAccessKey", data.access_key);
-
-          // 加载数据
           await loadDataFromSupabase();
           hideLoading();
           afterLogin();
@@ -859,39 +841,29 @@
       async function loginPrivate() {
         const accessKey = document.getElementById("privateToken").value.trim();
         if (!accessKey) return alert("请输入专属密钥");
-
         showLoading("正在识别专属密钥，请稍等...");
         try {
-          // 查询 cloud_auth_main 表验证专属密钥
           const { data, error } = await sbClient
             .from(SUPABASE_CONFIG.AUTH_TABLE)
             .select("access_key, data_dir, school_name, is_admin")
             .eq("access_key", accessKey)
             .single();
-
           if (error || !data) {
             hideLoading();
             console.error("密钥验证失败:", error);
             return alert("密钥无效");
           }
-
-          // 核心逻辑：密钥版也通过 data_dir 获取对应的文件夹（schema）
           currentUser = {
             accessKey: data.access_key,
             schoolName: data.school_name,
             isAdmin: data.is_admin,
-            schema: data.data_dir, // 直接使用 data_dir 作为 schema 名
+            schema: data.data_dir,
           };
-
           if (!currentUser.schema) {
             hideLoading();
             return alert("该密钥未配置对应的数据文件夹(data_dir)");
           }
-
-          // 保存状态到会话存储（刷新不掉线，关闭即失效）
           sessionStorage.setItem("lastAccessKey", data.access_key);
-
-          // 加载数据
           await loadDataFromSupabase();
           hideLoading();
           afterLogin();
@@ -902,33 +874,24 @@
         }
       }
 
-      // ==============================================
-      // 数据加载/保存逻辑（适配 debaters/matches/teams 表）
-      // ==============================================
       async function loadDataFromSupabase() {
-        // 加载前先彻底清除本地旧数据，确保以云端为准
         localStorage.removeItem("debateData");
-
         try {
-          // 使用 .schema() 方法动态调取对应的文件夹数据
           const { data: teamsData, error: teamsError } = await sbClient
             .schema(currentUser.schema)
             .from("teams")
             .select("*")
             .eq("school_name", currentUser.schoolName);
-
           const { data: matchesData, error: matchesError } = await sbClient
             .schema(currentUser.schema)
             .from("matches")
             .select("*")
             .eq("school_name", currentUser.schoolName);
-
           const { data: debatersData, error: debatersError } = await sbClient
             .schema(currentUser.schema)
             .from("debaters")
             .select("*")
             .eq("school_name", currentUser.schoolName);
-
           if (teamsError || matchesError || debatersError) {
             const err = teamsError || matchesError || debatersError;
             console.error("Schema 数据加载失败:", {
@@ -937,7 +900,6 @@
               debatersError,
               schema: currentUser.schema,
             });
-            // 针对 406 错误提供明确指引
             if (err.status === 406 || err.message.includes("Not Acceptable")) {
               throw new Error(
                 `调取数据失败 (406): 文件夹 "${currentUser.schema}" 未在 Supabase 中暴露。请前往 Supabase Dashboard -> Settings -> API -> Exposed schemas 中添加 "${currentUser.schema}"。`,
@@ -947,8 +909,6 @@
               `调取数据文件夹失败: ${err.message}。请确认文件夹名是否正确且已创建对应表。`,
             );
           }
-
-          // 转换为本地数据格式
           const teams = teamsData.map((t) => ({
             id: t.id.toString(),
             name: t.team_name,
@@ -956,7 +916,6 @@
             grade: t.grade,
             members: t.members || [],
           }));
-
           const matches = matchesData.map((m) => {
             let scores = {};
             try {
@@ -984,7 +943,6 @@
               debaterScores: scores,
             };
           });
-
           const debaters = {};
           debatersData.forEach((d) => {
             debaters[d.name] = {
@@ -996,8 +954,6 @@
               school_name: d.school_name,
             };
           });
-
-          // 保存到本地存储
           localStorage.debateData = JSON.stringify({
             teams,
             matches,
@@ -1005,7 +961,6 @@
           });
         } catch (e) {
           console.error("加载数据失败：", e);
-          // 初始化空数据
           localStorage.debateData = JSON.stringify({
             teams: [],
             matches: [],
@@ -1014,16 +969,12 @@
         }
       }
 
-      // 保存数据到 Supabase
       async function saveToSupabase() {
         if (!currentUser.accessKey || !currentUser.isAdmin) return;
-
         const dat = JSON.parse(
           localStorage.debateData || '{"teams":[],"matches":[],"debaters":{}}',
         );
-
         try {
-          // 1. 仅清空当前学校的数据，使用 .schema() 动态指定文件夹
           await sbClient
             .schema(currentUser.schema)
             .from("teams")
@@ -1039,22 +990,17 @@
             .from("debaters")
             .delete()
             .eq("school_name", currentUser.schoolName);
-
-          // 2. 保存队伍数据
           const teamsToSave = dat.teams.map((t) => ({
             school_name: currentUser.schoolName,
             team_name: t.name,
             members: t.members,
             grade: t.grade || "",
           }));
-          if (teamsToSave.length > 0) {
+          if (teamsToSave.length)
             await sbClient
               .schema(currentUser.schema)
               .from("teams")
               .insert(teamsToSave);
-          }
-
-          // 3. 保存比赛数据
           const matchesToSave = dat.matches.map((m) => ({
             school_name: currentUser.schoolName,
             match_name: m.topic,
@@ -1069,16 +1015,13 @@
             my_hold: m.myHold,
             pro_name: m.proName,
             con_name: m.conName,
-            debater_scores: m.debaterScores, // 直接传入对象，Supabase 会自动转为 JSONB
+            debater_scores: m.debaterScores,
           }));
-          if (matchesToSave.length > 0) {
+          if (matchesToSave.length)
             await sbClient
               .schema(currentUser.schema)
               .from("matches")
               .insert(matchesToSave);
-          }
-
-          // 4. 保存辩手数据
           const debatersToSave = Object.entries(dat.debaters).map(
             ([name, info]) => ({
               school_name: currentUser.schoolName,
@@ -1090,13 +1033,11 @@
               best_count: info.bestCount,
             }),
           );
-          if (debatersToSave.length > 0) {
+          if (debatersToSave.length)
             await sbClient
               .schema(currentUser.schema)
               .from("debaters")
               .insert(debatersToSave);
-          }
-
           console.log(`数据已同步到 Supabase 文件夹: ${currentUser.schema}`);
         } catch (e) {
           console.error("保存数据失败：", e);
@@ -1104,9 +1045,6 @@
         }
       }
 
-      // ==============================================
-      // 原有业务逻辑（仅修改数据保存触发和新增辩手字段）
-      // ==============================================
       function d() {
         return JSON.parse(
           localStorage.debateData || '{"teams":[],"matches":[],"debaters":{}}',
@@ -1114,7 +1052,7 @@
       }
       function s(x) {
         localStorage.debateData = JSON.stringify(x);
-        saveToSupabase(); // 替换原飞书保存逻辑为 Supabase
+        saveToSupabase();
       }
       function genTeamId() {
         return (
@@ -1213,16 +1151,13 @@
         document.getElementById("teamList").textContent =
           t?.members.join("、") || "暂无队员";
       }
-      // 新增辩手
       function addOne() {
         const dat = d();
         const id = document.getElementById("selTeam").value;
         const n = document.getElementById("newName").value.trim();
-
         if (!id || !n) return alert("请选择队伍并输入姓名");
         const t = dat.teams.find((x) => x.id === id);
         if (t.members.includes(n)) return alert("已存在");
-
         t.members.push(n);
         if (!dat.debaters[n])
           dat.debaters[n] = {
@@ -1237,17 +1172,13 @@
         renderTeam();
         refreshScoreTable();
       }
-      // 批量添加辩手
       function addBatch() {
         const dat = d();
         const id = document.getElementById("selTeam").value;
         const txt = document.getElementById("batchInput").value.trim();
-
         if (!id || !txt) return alert("输入为空");
-
         const names = txt.split("，").filter(Boolean);
         const t = dat.teams.find((x) => x.id === id);
-
         names.forEach((name) => {
           const n = name.trim();
           if (!n) return;
@@ -1264,7 +1195,6 @@
               };
           }
         });
-
         s(dat);
         renderTeam();
         refreshScoreTable();
@@ -1425,21 +1355,9 @@
               : '<p class="tip tip-error">请选择队伍和参赛辩手</p>';
           return;
         }
-        let html = `<table>
-          <thead>
-            <tr><th>辩手</th><th>立论</th><th>质询/接质</th><th>自由辩</th><th>结辩</th><th>有效环节</th><th>本场平均分</th></tr>
-          </thead>
-          <tbody>`;
+        let html = `<table><thead><tr><th>辩手</th><th>立论</th><th>质询/接质</th><th>自由辩</th><th>结辩</th><th>有效环节</th><th>本场平均分</th></tr></thead><tbody>`;
         arr.forEach((n) => {
-          html += `<tr id="row-${n}">
-            <td>${n}</td>
-            <td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="lilun" oninput="calc(this)"></td>
-            <td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="bolun" oninput="calc(this)"></td>
-            <td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="ziyou" oninput="calc(this)"></td>
-            <td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="jiebian" oninput="calc(this)"></td>
-            <td class="c${n}">0</td>
-            <td class="t${n}">0.0</td>
-          </tr>`;
+          html += `<tr id="row-${n}"><td>${n}</td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="lilun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="bolun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="ziyou" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="jiebian" oninput="calc(this)"></td><td class="c${n}">0</td><td class="t${n}">0.0</td></tr>`;
         });
         html += `</tbody></table>`;
         document.getElementById("scoreArea").innerHTML = html;
@@ -1569,7 +1487,6 @@
             cnt++;
           }
           const avg = cnt > 0 ? sum / cnt : 0;
-          // 10分制，使用四舍五入保留一位小数进行统计
           const finalScore = Number(avg.toFixed(1));
           scrs[k].total = finalScore;
           scrs[k].validCount = cnt;
@@ -1600,8 +1517,8 @@
           topic,
           matchTime: time,
           judge,
-          myTeam: myTeam,
-          myHold: myHold,
+          myTeam,
+          myHold,
           proName,
           conName,
           opponent,
@@ -1613,14 +1530,26 @@
         alert(`保存成功！最佳：${best || "无"}`);
         refreshScoreTable();
       }
+
+      // ================== 修正 doQuery ==================
       function doQuery() {
         const dat = d();
         const team = document.getElementById("qTeam").value;
         const mode = document.getElementById("qMode").value;
         const tmode = document.getElementById("qTeamMode").value;
         let list = dat.matches;
-        if (team !== "all")
-          list = list.filter((x) => String(x.myTeam) === String(team));
+        // 按队伍过滤：根据队伍名称匹配
+        if (team !== "all") {
+          const selectedTeam = dat.teams.find((t) => t.id === team);
+          if (selectedTeam) {
+            const teamName = selectedTeam.name;
+            list = list.filter(
+              (x) => x.proName === teamName || x.conName === teamName,
+            );
+          } else {
+            list = [];
+          }
+        }
         if (mode !== "all") list = list.filter((x) => x.mode === mode);
         if (tmode !== "all") list = list.filter((x) => x.teamMode === tmode);
         if (list.length === 0) {
@@ -1628,30 +1557,101 @@
             '<p class="tip tip-error">无记录</p>';
           return;
         }
-        let html = `<table>
-          <thead>
-            <tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr>
-          </thead>
-          <tbody>`;
+        let html = `<td><thead><tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr></thead><tbody>`;
         list.forEach((x) => {
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
           const tmm = { fixed: "固定", temp: "临时" }[x.teamMode];
           const delBtn = currentUser.isAdmin
             ? `<button class="btn-small btn-danger" onclick="deleteMatch('${x.id}')">删除</button>`
             : "";
-          html += `<tr>
-            <td>${tmm}</td>
-            <td>${mm}</td>
-            <td>${x.topic}</td>
-            <td>${x.proName}</td>
-            <td>${x.conName}</td>
-            <td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td>
-            <td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td>
-          </tr>`;
+          html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td></tr>`;
         });
         html += `</tbody></table>`;
         document.getElementById("queryResult").innerHTML = html;
       }
+
+      // ================== 修正 renderStats ==================
+      function renderStats() {
+        const dat = d();
+        const map = {};
+        dat.teams.forEach((t) => {
+          map[t.id] = { w: 0, l: 0, name: t.name };
+        });
+        dat.matches.forEach((g) => {
+          if (g.teamMode !== "temp" && g.myTeam !== "temp") {
+            // 根据 myHold 确定我方队伍名称
+            const myTeamName = g.myHold === "pro" ? g.proName : g.conName;
+            // 根据队伍名称找到对应的队伍 ID
+            const teamEntry = dat.teams.find((t) => t.name === myTeamName);
+            if (teamEntry && map[teamEntry.id]) {
+              if (g.winner === g.myHold) map[teamEntry.id].w++;
+              else map[teamEntry.id].l++;
+            }
+          }
+        });
+        const sorted = Object.values(map)
+          .map((i) => {
+            const total = i.w + i.l;
+            return { ...i, total, rate: total ? (i.w / total) * 100 : 0 };
+          })
+          .sort((a, b) => b.rate - a.rate);
+        let html = `<table><thead><tr><th>排名</th><th>队伍</th><th>胜</th><th>负</th><th>胜率</th></tr></thead><tbody>`;
+        sorted.forEach((it, i) => {
+          let cls =
+            i === 0
+              ? "rank-top1"
+              : i === 1
+                ? "rank-top2"
+                : i === 2
+                  ? "rank-top3"
+                  : "";
+          html += `<tr class="${cls}"><td>${i + 1}</td><td>${it.name}</td><td>${it.w}</td><td>${it.l}</td><td>${it.rate.toFixed(1)}%</td></tr>`;
+        });
+        html += `</tbody></table>`;
+        document.getElementById("teamStats").innerHTML = html;
+
+        const dr = Object.entries(dat.debaters)
+          .filter(([k, v]) => v.matchCount > 0)
+          .map(([k, v]) => ({
+            n: k,
+            avg: (v.totalScore / v.matchCount).toFixed(1),
+            cnt: v.matchCount,
+          }))
+          .sort((a, b) => b.avg - a.avg);
+        let dh = `<table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th><th>操作</th></tr></thead><tbody>`;
+        dr.forEach((it, i) => {
+          let cls =
+            i === 0
+              ? "rank-top1"
+              : i === 1
+                ? "rank-top2"
+                : i === 2
+                  ? "rank-top3"
+                  : "";
+          dh += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td><td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td></tr>`;
+        });
+        dh += `</tbody></table>`;
+        document.getElementById("debaterRank").innerHTML = dh;
+
+        const bs = Object.entries(dat.debaters)
+          .filter(([k, v]) => v.bestCount > 0)
+          .sort((a, b) => b[1].bestCount - a[1].bestCount);
+        let bh = `<table><thead><tr><th>辩手</th><th>最佳次数</th></tr></thead><tbody>`;
+        bs.forEach(([k, v], i) => {
+          let cls =
+            i === 0
+              ? "rank-top1"
+              : i === 1
+                ? "rank-top2"
+                : i === 2
+                  ? "rank-top3"
+                  : "";
+          bh += `<tr class="${cls}"><td>${k}</td><td>${v.bestCount}</td></tr>`;
+        });
+        bh += `</tbody></tr>`;
+        document.getElementById("bestCount").innerHTML = bh;
+      }
+
       function deleteMatch(id) {
         if (!currentUser.isAdmin) return alert("无权操作");
         if (!confirm("确定要永久删除这场比赛记录吗？")) return;
@@ -1697,135 +1697,15 @@
         const dat = d();
         const m = dat.matches.find((x) => String(x.id) === String(id));
         if (!m) return;
-        let html = `<h3>比赛详情</h3><div class="info-card">
-          <div class="info-item"><span>辩题：</span><span>${m.topic}</span></div>
-          <div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div>
-          <div class="info-item"><span>评委：</span><span>${m.judge}</span></div>
-          <div class="info-item"><span>正方：</span><span>${m.proName}</span></div>
-          <div class="info-item"><span>反方：</span><span>${m.conName}</span></div>
-          <div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div>
-        </div>
-        <table>
-          <thead>
-            <tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr>
-          </thead>
-          <tbody>`;
+        let html = `<h3>比赛详情</h3><div class="info-card"><div class="info-item"><span>辩题：</span><span>${m.topic}</span></div><div class="info-item"><span>时间：</span><span>${m.matchTime}</span></div><div class="info-item"><span>评委：</span><span>${m.judge}</span></div><div class="info-item"><span>正方：</span><span>${m.proName}</span></div><div class="info-item"><span>反方：</span><span>${m.conName}</span></div><div class="info-item"><span>结果：</span><span>${m.winner === "pro" ? "正方胜" : "反方胜"}</span></div></div><table><thead><tr><th>辩手</th><th>立论</th><th>质询</th><th>自由辩</th><th>结辩</th><th>有效</th><th>平均分</th></tr></thead><tbody>`;
         Object.entries(m.debaterScores).forEach(([n, s]) => {
-          html += `<tr class="${s.playing ? "" : "not-playing"}">
-            <td>${n}</td>
-            <td>${s.lilun || "-"}</td>
-            <td>${s.bolun || "-"}</td>
-            <td>${s.ziyou || "-"}</td>
-            <td>${s.jiebian || "-"}</td>
-            <td>${s.validCount}</td>
-            <td>${s.total.toFixed(1)}</td>
-          </tr>`;
+          html += `<tr class="${s.playing ? "" : "not-playing"}"><td>${n}</td><td>${s.lilun || "-"}</td><td>${s.bolun || "-"}</td><td>${s.ziyou || "-"}</td><td>${s.jiebian || "-"}</td><td>${s.validCount}</td><td>${s.total.toFixed(1)}</td></tr>`;
         });
         html += `</tbody></table>`;
         const p = document.getElementById("matchDetail");
         p.innerHTML = html;
         p.style.display = "block";
         p.scrollIntoView({ behavior: "smooth" });
-      }
-      function renderStats() {
-        const dat = d();
-        const map = {};
-        dat.teams.forEach((t) => {
-          map[t.id] = { w: 0, l: 0, name: t.name };
-        });
-        dat.matches.forEach((g) => {
-          if (g.teamMode !== "temp" && g.myTeam !== "temp" && map[g.myTeam]) {
-            g.winner === g.myHold ? map[g.myTeam].w++ : map[g.myTeam].l++;
-          }
-        });
-        const sorted = Object.values(map)
-          .map((i) => {
-            const total = i.w + i.l;
-            return { ...i, total, rate: total ? (i.w / total) * 100 : 0 };
-          })
-          .sort((a, b) => b.rate - a.rate);
-        let html = `<table>
-          <thead>
-            <tr><th>排名</th><th>队伍</th><th>胜</th><th>负</th><th>胜率</th></tr>
-          </thead>
-          <tbody>`;
-        sorted.forEach((it, i) => {
-          let cls =
-            i === 0
-              ? "rank-top1"
-              : i === 1
-                ? "rank-top2"
-                : i === 2
-                  ? "rank-top3"
-                  : "";
-          html += `<tr class="${cls}">
-            <td>${i + 1}</td>
-            <td>${it.name}</td>
-            <td>${it.w}</td>
-            <td>${it.l}</td>
-            <td>${it.rate.toFixed(1)}%</td>
-          </tr>`;
-        });
-        html += `</tbody></table>`;
-        document.getElementById("teamStats").innerHTML = html;
-
-        const dr = Object.entries(dat.debaters)
-          .filter(([k, v]) => v.matchCount > 0)
-          .map(([k, v]) => ({
-            n: k,
-            avg: (v.totalScore / v.matchCount).toFixed(1),
-            cnt: v.matchCount,
-          }))
-          .sort((a, b) => b.avg - a.avg);
-        let dh = `<table>
-          <thead>
-            <tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th><th>操作</th></tr>
-          </thead>
-          <tbody>`;
-        dr.forEach((it, i) => {
-          let cls =
-            i === 0
-              ? "rank-top1"
-              : i === 1
-                ? "rank-top2"
-                : i === 2
-                  ? "rank-top3"
-                  : "";
-          dh += `<tr class="${cls}">
-            <td>${i + 1}</td>
-            <td>${it.n}</td>
-            <td>${it.avg}</td>
-            <td>${it.cnt}</td>
-            <td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td>
-          </tr>`;
-        });
-        dh += `</tbody></table>`;
-        document.getElementById("debaterRank").innerHTML = dh;
-
-        const bs = Object.entries(dat.debaters)
-          .filter(([k, v]) => v.bestCount > 0)
-          .sort((a, b) => b[1].bestCount - a[1].bestCount);
-        let bh = `<table>
-          <thead>
-            <tr><th>辩手</th><th>最佳次数</th></tr>
-          </thead>
-          <tbody>`;
-        bs.forEach(([k, v], i) => {
-          let cls =
-            i === 0
-              ? "rank-top1"
-              : i === 1
-                ? "rank-top2"
-                : i === 2
-                  ? "rank-top3"
-                  : "";
-          bh += `<tr class="${cls}">
-            <td>${k}</td>
-            <td>${v.bestCount}</td>
-          </tr>`;
-        });
-        bh += `</tbody></table>`;
-        document.getElementById("bestCount").innerHTML = bh;
       }
       function renderPositionRank() {
         const dat = d();
@@ -1847,11 +1727,7 @@
           document.getElementById("positionRank").innerHTML = "<p>无数据</p>";
           return;
         }
-        let html = `<table>
-          <thead>
-            <tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th></tr>
-          </thead>
-          <tbody>`;
+        let html = `<table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th></tr></thead><tbody>`;
         list.forEach((it, i) => {
           let cls =
             i === 0
@@ -1861,12 +1737,7 @@
                 : i === 2
                   ? "rank-top3"
                   : "";
-          html += `<tr class="${cls}">
-            <td>${i + 1}</td>
-            <td>${it.n}</td>
-            <td>${it.avg}</td>
-            <td>${it.cnt}</td>
-          </tr>`;
+          html += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td></tr>`;
         });
         html += `</tbody></table>`;
         document.getElementById("positionRank").innerHTML = html;
@@ -1902,27 +1773,11 @@
             best = p.n;
           }
         });
-        let html = `<h3>${name} 详情</h3><div class="info-card">
-          <div class="info-item"><span>场次：</span><span>${deb.matchCount}</span></div>
-          <div class="info-item"><span>最佳：</span><span>${deb.bestCount}</span></div>
-          <div class="info-item"><span>场均：</span><span>${(deb.totalScore / deb.matchCount).toFixed(2)}</span></div>
-          <div class="info-item"><span>年级：</span><span>${deb.grade || "未填写"}</span></div>
-          <div class="info-item"><span>位置：</span><span>${deb.position || "未填写"}</span></div>
-        </div>`;
+        let html = `<h3>${name} 详情</h3><div class="info-card"><div class="info-item"><span>场次：</span><span>${deb.matchCount}</span></div><div class="info-item"><span>最佳：</span><span>${deb.bestCount}</span></div><div class="info-item"><span>场均：</span><span>${(deb.totalScore / deb.matchCount).toFixed(2)}</span></div><div class="info-item"><span>年级：</span><span>${deb.grade || "未填写"}</span></div><div class="info-item"><span>位置：</span><span>${deb.position || "未填写"}</span></div></div>`;
         if (best) html += `<div class="best-position">推荐位置：${best}</div>`;
-        html += `<table>
-          <thead>
-            <tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr>
-          </thead>
-          <tbody>`;
+        html += `<table><thead><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr></thead><tbody>`;
         Object.values(ps).forEach((p) => {
-          html += `<tr>
-            <td>${p.n}</td>
-            <td>${p.avg}</td>
-            <td>${p.max || "-"}</td>
-            <td>${p.min || "-"}</td>
-            <td>${p.c}</td>
-          </tr>`;
+          html += `<tr><td>${p.n}</td><td>${p.avg}</td><td>${p.max || "-"}</td><td>${p.min || "-"}</td><td>${p.c}</td></tr>`;
         });
         html += `</tbody></table>`;
         const p = document.getElementById("debaterDetail");
@@ -1968,32 +1823,24 @@
           )
         )
           return;
-
         showLoading("正在彻底清空云端数据...");
         try {
-          // 1. 同步清空云端三张表的数据
-          const { error: err1 } = await sbClient
+          await sbClient
             .schema(currentUser.schema)
             .from("teams")
             .delete()
             .eq("school_name", currentUser.schoolName);
-          const { error: err2 } = await sbClient
+          await sbClient
             .schema(currentUser.schema)
             .from("matches")
             .delete()
             .eq("school_name", currentUser.schoolName);
-          const { error: err3 } = await sbClient
+          await sbClient
             .schema(currentUser.schema)
             .from("debaters")
             .delete()
             .eq("school_name", currentUser.schoolName);
-
-          if (err1 || err2 || err3)
-            throw new Error("云端部分数据删除失败，请检查网络");
-
-          // 2. 清除本地缓存
           localStorage.removeItem("debateData");
-
           alert("已成功清空云端及本地数据");
           location.reload();
         } catch (e) {
@@ -2007,12 +1854,9 @@
         sessionStorage.removeItem("lastAccessKey");
         location.reload();
       }
-
       function afterLogin() {
         document.getElementById("loginPage").style.display = "none";
         document.getElementById("mainPage").style.display = "flex";
-
-        // 增加退出登录按钮
         if (!document.getElementById("logoutBtn")) {
           const nav = document.querySelector(".tab-nav");
           if (nav) {
@@ -2025,17 +1869,12 @@
             nav.appendChild(btn);
           }
         }
-
-        // 权限控制：如果不是管理员，隐藏所有增删改功能
         if (!currentUser.isAdmin) {
           alert("当前为只读权限，仅可查看数据");
-          // 1. 赛事录入中的保存按钮
           const saveMatchBtn = document.querySelector(
             'button[onclick="saveMatch()"]',
           );
           if (saveMatchBtn) saveMatchBtn.style.display = "none";
-
-          // 2. 队伍管理中的功能
           const teamManageBtns = [
             'button[onclick="createTeam()"]',
             'button[onclick="createTeamFromPanel()"]',
@@ -2047,8 +1886,6 @@
             const btn = document.querySelector(sel);
             if (btn) btn.style.display = "none";
           });
-
-          // 3. 数据备份与管理中的功能
           const dataOpBtns = [
             'button[onclick="importData()"]',
             'button[onclick="clearAll()"]',
@@ -2057,8 +1894,6 @@
             const btn = document.querySelector(sel);
             if (btn) btn.style.display = "none";
           });
-
-          // 4. 隐藏不需要看到的面板
           const noTeamPanel = document.getElementById("noTeamPanel");
           if (noTeamPanel) noTeamPanel.style.display = "none";
         }
