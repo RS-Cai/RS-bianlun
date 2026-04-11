@@ -1607,14 +1607,29 @@
         const mode = document.getElementById("qMode").value;
         const tmode = document.getElementById("qTeamMode").value;
         let list = dat.matches;
-        if (team !== "all") list = list.filter((x) => x.myTeam === team);
+
+        // 修复：正确过滤 固定队伍 / 临时组队
+        if (team !== "all") {
+          list = list.filter((x) => {
+            // 固定队伍：匹配队伍ID
+            if (x.teamMode === "fixed") return x.myTeam === team;
+            // 临时队伍：不过滤（因为不属于任何固定队伍）
+            if (x.teamMode === "temp") return true;
+            return true;
+          });
+        }
+
+        // 比赛模式过滤（正常不动）
         if (mode !== "all") list = list.filter((x) => x.mode === mode);
+        // 组队模式过滤（正常不动）
         if (tmode !== "all") list = list.filter((x) => x.teamMode === tmode);
+
         if (list.length === 0) {
           document.getElementById("queryResult").innerHTML =
             '<p class="tip tip-error">无记录</p>';
           return;
         }
+
         let html =
           "<table><tr><th>组队</th><th>模式</th><th>辩题</th><th>正方</th><th>反方</th><th>结果</th><th>操作</th></tr>";
         list.forEach((x) => {
