@@ -1355,7 +1355,8 @@
               : '<p class="tip tip-error">请选择队伍和参赛辩手</p>';
           return;
         }
-        let html = `<tr><thead><tr><th>辩手</th><th>立论</th><th>质询/接质</th><th>自由辩</th><th>结辩</th><th>有效环节</th><th>本场平均分</th></tr></thead><tbody>`;
+        // ---------- 修正表格起始标签（原来为 <tr><thead><tr>...） ----------
+        let html = `<table><thead><tr><th>辩手</th><th>立论</th><th>质询/接质</th><th>自由辩</th><th>结辩</th><th>有效环节</th><th>本场平均分</th></tr></thead><tbody>`;
         arr.forEach((n) => {
           html += `<tr id="row-${n}"><td>${n}</td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="lilun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="bolun" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="ziyou" oninput="calc(this)"></td><td><input type="number" min=0 max=10 step=0.1 class="scoreInput" data-n="${n}" data-i="jiebian" oninput="calc(this)"></td><td class="c${n}">0</td><td class="t${n}">0.0</td></tr>`;
         });
