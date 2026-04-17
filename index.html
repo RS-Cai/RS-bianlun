@@ -399,7 +399,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body>
-    <!-- ========== 你喜欢的原版登录界面（已完美还原） ========== -->
+    <!-- ========== 登录界面 ========== -->
     <div id="loginPage" style="display: block">
       <div class="login-container">
         <h2>若水辩论队管理系统</h2>
@@ -427,12 +427,14 @@
         </div>
         <div class="copyright">
           若水辩论队管理系统<br />版权所有 © 2026 [蔡敏恩/若水工作室]
-          保留所有权利<br />本软件由本人独立需求设计、业务逻辑定制、功能调试与迭代开发，AI仅作为辅助工具参与代码生成，整体著作权归开发者所有。<br />禁止反编译、倒卖、二次分发，侵权必究。
+          保留所有权利<br />
+          本软件由本人独立需求设计、业务逻辑定制、功能调试与迭代开发，AI仅作为辅助工具参与代码生成，整体著作权归开发者所有。<br />
+          禁止反编译、倒卖、二次分发，侵权必究。
         </div>
       </div>
     </div>
 
-    <!-- ========== 主界面（你现在新版功能 100% 保留） ========== -->
+    <!-- ========== 主界面 ========== -->
     <div id="mainPage">
       <div class="header"><h1>若水辩论队管理系统</h1></div>
       <div class="tab-nav">
@@ -442,6 +444,7 @@
         <button class="tab-btn" data-tab="manageTeam">队伍管理</button>
       </div>
 
+      <!-- 赛事录入 -->
       <div class="tab-content active" id="addMatch">
         <h3>新增比赛</h3>
         <div class="form-row">
@@ -587,6 +590,7 @@
         </div>
       </div>
 
+      <!-- 比赛查询 -->
       <div class="tab-content" id="queryMatch">
         <h3>历史比赛查询</h3>
         <div class="form-row">
@@ -610,6 +614,7 @@
         <div id="matchDetail" class="detail-panel" style="display: none"></div>
       </div>
 
+      <!-- 数据统计 -->
       <div class="tab-content" id="statistics">
         <h3>队伍胜负统计</h3>
         <div id="teamStats"></div>
@@ -634,6 +639,7 @@
         ></div>
       </div>
 
+      <!-- 队伍管理（增加重命名按钮） -->
       <div class="tab-content" id="manageTeam">
         <h3>队伍管理</h3>
         <div id="noTeamPanel" style="display: none; margin-bottom: 20px">
@@ -658,7 +664,16 @@
                 style="min-width: 200px"
               ></select>
             </div>
-            <div style="margin: 14px 0 8px">当前队员</div>
+            <div style="margin: 14px 0 8px">
+              <button
+                class="btn-small btn-primary"
+                onclick="renameTeam()"
+                style="margin-right: 10px"
+              >
+                重命名队伍
+              </button>
+              <span>当前队员</span>
+            </div>
             <div
               id="teamList"
               style="
@@ -675,15 +690,14 @@
                 id="debaterName"
                 placeholder="输入队员姓名"
                 style="flex: 1"
-              />
-              <button class="btn-danger" onclick="deleteDebater()">
+              /><button class="btn-danger" onclick="deleteDebater()">
                 删除队员
               </button>
             </div>
             <div style="margin: 14px 0 8px">转移队员至其他队伍</div>
             <div class="form-row">
-              <select id="targetTeam" style="flex: 1"></select>
-              <button class="btn-warning" onclick="transferDebater()">
+              <select id="targetTeam" style="flex: 1"></select
+              ><button class="btn-warning" onclick="transferDebater()">
                 转移队员
               </button>
             </div>
@@ -701,8 +715,7 @@
                 id="newTeamNameInput"
                 placeholder="输入新队伍名称"
                 style="flex: 1"
-              />
-              <button class="btn-success" onclick="createTeamFromPanel()">
+              /><button class="btn-success" onclick="createTeamFromPanel()">
                 确认创建
               </button>
             </div>
@@ -710,6 +723,7 @@
         </div>
       </div>
 
+      <!-- 新增辩手弹窗 -->
       <div
         id="addModal"
         style="
@@ -736,14 +750,13 @@
         >
           <h3>新增辩手</h3>
           <div class="form-row" style="display: block; margin-bottom: 16px">
-            <label style="margin-bottom: 6px; display: block">单个添加</label>
-            <input
+            <label style="margin-bottom: 6px; display: block">单个添加</label
+            ><input
               type="text"
               id="newName"
               style="width: 100%"
               placeholder="姓名"
-            />
-            <button
+            /><button
               class="btn-primary"
               style="margin-top: 8px"
               onclick="addOneModal()"
@@ -754,14 +767,13 @@
           <div class="form-row" style="display: block">
             <label style="margin-bottom: 6px; display: block"
               >批量添加（中文逗号分隔）</label
-            >
-            <textarea
+            ><textarea
               id="batchInput"
               rows="4"
               style="width: 100%"
               placeholder="张三，李四"
-            ></textarea>
-            <button
+            ></textarea
+            ><button
               class="btn-success"
               style="margin-top: 8px"
               onclick="addBatchModal()"
@@ -783,7 +795,6 @@
           <button class="btn-danger" onclick="clearAll()">清空数据</button>
         </div>
       </div>
-
       <div class="footer-copyright">
         辩论队管理系统<br />版权所有 © 2026 [蔡敏恩/若水工作室] 保留所有权利<br />本软件由本人独立需求设计、业务逻辑定制、功能调试与迭代开发，AI仅作为辅助工具参与代码生成，整体著作权归开发者所有。<br />禁止反编译、倒卖、二次分发，侵权必究。
       </div>
@@ -791,7 +802,7 @@
 
     <script>
       // ==============================================
-      // Supabase 配置（替换为你的 Supabase 项目信息）
+      // Supabase 配置
       // ==============================================
       const SUPABASE_CONFIG = {
         URL: "https://trbyjznqbwwslrujxwbs.supabase.co",
@@ -799,7 +810,6 @@
         AUTH_TABLE: "cloud_auth_main",
       };
 
-      // 初始化 Supabase 客户端
       const sbClient = window.supabase.createClient(
         SUPABASE_CONFIG.URL,
         SUPABASE_CONFIG.KEY,
@@ -817,17 +827,12 @@
         loading.id = "supabaseLoadingOverlay";
         loading.style =
           "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:10000;color:#fff;";
-        loading.innerHTML = `<div style="background:#fff;color:#333;padding:25px 40px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.2);text-align:center;">
-          <div style="margin-bottom:10px;font-size:18px;font-weight:bold;">${text}</div>
-          <div style="font-size:14px;color:#666;">请稍后，正在与云端对接...</div>
-        </div>`;
+        loading.innerHTML = `<div style="background:#fff;color:#333;padding:25px 40px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.2);text-align:center;"><div style="margin-bottom:10px;font-size:18px;font-weight:bold;">${text}</div><div style="font-size:14px;color:#666;">请稍后，正在与云端对接...</div></div>`;
         document.body.appendChild(loading);
         return loading;
       }
-
       function hideLoading() {
-        const loading = document.getElementById("supabaseLoadingOverlay");
-        if (loading) loading.remove();
+        document.getElementById("supabaseLoadingOverlay")?.remove();
       }
 
       let currentUser = {
@@ -837,6 +842,36 @@
         schema: "",
       };
       let tempDebaters = [];
+
+      // 解析比赛时间，支持 "2026.4.1" 和 "2026-4-1" 格式，返回 YYYY-MM-DD 字符串用于排序
+      function parseMatchTime(timeStr) {
+        if (!timeStr) return null;
+        const str = String(timeStr).trim();
+        // 替换点号为短横线，统一格式
+        const normalized = str.replace(/\./g, "-");
+        const parts = normalized.split("-");
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10);
+          const day = parseInt(parts[2], 10);
+          if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+            return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          }
+        }
+        return null;
+      }
+
+      // 对比赛数组按时间从近到远排序（兼容两种格式）
+      function sortMatchesByTime(matches) {
+        return matches.sort((a, b) => {
+          const timeA = parseMatchTime(a.matchTime);
+          const timeB = parseMatchTime(b.matchTime);
+          if (timeA && timeB) return timeB.localeCompare(timeA); // 降序
+          if (timeA && !timeB) return -1;
+          if (!timeA && timeB) return 1;
+          return 0;
+        });
+      }
 
       window.onload = async function () {
         if (currentUser.accessKey) {
@@ -856,9 +891,7 @@
               };
               await loadDataFromSupabase();
               afterLogin();
-            } else {
-              sessionStorage.removeItem("lastAccessKey");
-            }
+            } else sessionStorage.removeItem("lastAccessKey");
           } catch (e) {
             console.error("自动恢复失败:", e);
           } finally {
@@ -870,7 +903,7 @@
       async function loginCloud() {
         const accessKey = document.getElementById("cloudToken").value.trim();
         if (!accessKey) return alert("请输入访问标识");
-        showLoading("正在识别访问标识，请稍等...");
+        showLoading("正在识别访问标识...");
         try {
           const { data, error } = await sbClient
             .from(SUPABASE_CONFIG.AUTH_TABLE)
@@ -902,7 +935,7 @@
       async function loginPrivate() {
         const accessKey = document.getElementById("privateToken").value.trim();
         if (!accessKey) return alert("请输入专属密钥");
-        showLoading("正在识别专属密钥，请稍等...");
+        showLoading("正在识别专属密钥...");
         try {
           const { data, error } = await sbClient
             .from(SUPABASE_CONFIG.AUTH_TABLE)
@@ -955,20 +988,11 @@
             .eq("school_name", currentUser.schoolName);
           if (teamsError || matchesError || debatersError) {
             const err = teamsError || matchesError || debatersError;
-            console.error("Schema 数据加载失败:", {
-              teamsError,
-              matchesError,
-              debatersError,
-              schema: currentUser.schema,
-            });
-            if (err.status === 406 || err.message.includes("Not Acceptable")) {
+            if (err.status === 406 || err.message.includes("Not Acceptable"))
               throw new Error(
-                `调取数据失败 (406): 文件夹 "${currentUser.schema}" 未在 Supabase 中暴露。请前往 Supabase Dashboard -> Settings -> API -> Exposed schemas 中添加 "${currentUser.schema}"。`,
+                `调取数据失败 (406): 文件夹 "${currentUser.schema}" 未在 Supabase 中暴露。`,
               );
-            }
-            throw new Error(
-              `调取数据文件夹失败: ${err.message}。请确认文件夹名是否正确且已创建对应表。`,
-            );
+            throw new Error(`调取数据文件夹失败: ${err.message}`);
           }
           const teams = teamsData.map((t) => ({
             id: t.id.toString(),
@@ -977,16 +1001,14 @@
             grade: t.grade,
             members: t.members || [],
           }));
-          const matches = matchesData.map((m) => {
+          let matches = matchesData.map((m) => {
             let scores = {};
             try {
               scores =
                 typeof m.debater_scores === "string"
                   ? JSON.parse(m.debater_scores)
                   : m.debater_scores || {};
-            } catch (e) {
-              console.error("解析得分数据失败:", e);
-            }
+            } catch (e) {}
             return {
               id: m.id,
               teamMode: m.team_mode || "fixed",
@@ -1004,6 +1026,7 @@
               debaterScores: scores,
             };
           });
+          matches = sortMatchesByTime(matches);
           const debaters = {};
           debatersData.forEach((d) => {
             debaters[d.name] = {
@@ -1086,7 +1109,7 @@
           const debatersToSave = Object.entries(dat.debaters).map(
             ([name, info]) => ({
               school_name: currentUser.schoolName,
-              name: name,
+              name,
               grade: info.grade || "",
               position: info.position || "",
               total_score: info.totalScore,
@@ -1130,6 +1153,7 @@
           ? "block"
           : "none";
       }
+
       function refreshAllTeamSelects() {
         const dat = d();
         const ids = [
@@ -1144,7 +1168,6 @@
         ids.forEach((id) => {
           const el = document.getElementById(id);
           if (!el) return;
-          const old = el.value;
           el.innerHTML =
             id === "qTeam" ? '<option value="all">全部</option>' : "";
           dat.teams.forEach((t) => {
@@ -1153,17 +1176,15 @@
             opt.textContent = t.name;
             el.appendChild(opt);
           });
-          // 修改：强制 qTeam 默认选中 "all"
-          if (id === "qTeam") {
-            el.value = "all";
-          } else {
-            el.value = dat.teams.some((x) => x.id === old)
-              ? old
+          if (id === "qTeam") el.value = "all";
+          else
+            el.value = dat.teams.some((x) => x.id === el.value)
+              ? el.value
               : dat.teams[0]?.id || "";
-          }
         });
         updateTeamPanel();
       }
+
       function createTeam() {
         const name = prompt("输入队伍名称：");
         if (!name) return;
@@ -1196,6 +1217,30 @@
         renderTeam();
         alert("创建成功");
       }
+
+      // 重命名队伍
+      function renameTeam() {
+        const dat = d();
+        const id = document.getElementById("selTeam").value;
+        const team = dat.teams.find((t) => t.id === id);
+        if (!team) return alert("请先选择一个队伍");
+        const oldName = team.name;
+        const newName = prompt("输入新的队伍名称", oldName);
+        if (!newName || newName === oldName) return;
+        team.name = newName;
+        // 更新所有比赛记录中的队名
+        dat.matches.forEach((m) => {
+          if (m.proName === oldName) m.proName = newName;
+          if (m.conName === oldName) m.conName = newName;
+        });
+        s(dat);
+        refreshAllTeamSelects();
+        renderTeam();
+        if (document.getElementById("statistics").classList.contains("active"))
+          renderStats();
+        alert("重命名成功，所有相关记录已同步");
+      }
+
       function showAddModal() {
         document.getElementById("addModal").style.display = "flex";
       }
@@ -1293,6 +1338,7 @@
         refreshScoreTable();
         alert("转移成功");
       }
+
       document.querySelectorAll(".tab-btn").forEach((b) => {
         b.onclick = () => {
           document
@@ -1313,6 +1359,7 @@
           }
         };
       });
+
       function toggleTeamMode() {
         const m = document.getElementById("teamMode").value;
         document.getElementById("fixedTeamPanel").style.display =
@@ -1386,6 +1433,7 @@
         alert(`已选：${tempDebaters.join("、")}`);
         refreshScoreTable();
       }
+
       function refreshScoreTable() {
         const dat = d();
         const tm = document.getElementById("teamMode").value;
@@ -1449,6 +1497,7 @@
           .getElementById(`row-${n}`)
           .classList.toggle("not-playing", cnt === 0);
       }
+
       function saveMatch() {
         const dat = d();
         const tm = document.getElementById("teamMode").value;
@@ -1574,7 +1623,6 @@
             dat.debaters[k].matchCount++;
           }
         });
-        // 收集所有最高分辩手
         const bestList = Object.keys(scrs).filter(
           (k) => scrs[k].playing && scrs[k].total === maxScore,
         );
@@ -1597,19 +1645,20 @@
           winReason: reason,
           debaterScores: scrs,
         });
+        // 保持排序
+        dat.matches = sortMatchesByTime(dat.matches);
         s(dat);
         const bestStr = bestList.length ? bestList.join("、") : "无";
         alert(`保存成功！最佳：${bestStr}`);
         refreshScoreTable();
       }
 
-      // ================== 修正 doQuery（修复表格塌陷） ==================
       function doQuery() {
         const dat = d();
         const team = document.getElementById("qTeam").value;
         const mode = document.getElementById("qMode").value;
         const tmode = document.getElementById("qTeamMode").value;
-        let list = dat.matches;
+        let list = sortMatchesByTime([...dat.matches]); // 使用排序后的副本
         if (team !== "all") {
           const selectedTeam = dat.teams.find((t) => t.id === team);
           if (selectedTeam) {
@@ -1617,9 +1666,7 @@
             list = list.filter(
               (x) => x.proName === teamName || x.conName === teamName,
             );
-          } else {
-            list = [];
-          }
+          } else list = [];
         }
         if (mode !== "all") list = list.filter((x) => x.mode === mode);
         if (tmode !== "all") list = list.filter((x) => x.teamMode === tmode);
@@ -1633,23 +1680,14 @@
           const mm = { normal: "队内赛", ai: "AI", out: "对外赛" }[x.mode];
           const tmm = { fixed: "固定", temp: "临时" }[x.teamMode];
           const delBtn = currentUser.isAdmin
-            ? `<button class="btn-small btn-danger" onclick="deleteMatch('${x.id}')">删除</button>`
+            ? `<button class="btn-small btn-danger" onclick="deleteMatch('${String(x.id)}')">删除</button>`
             : "";
-          html += `<tr>
-            <td>${tmm}</td>
-            <td>${mm}</td>
-            <td>${x.topic}</td>
-            <td>${x.proName}</td>
-            <td>${x.conName}</td>
-            <td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td>
-            <td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td>
-          </tr>`;
+          html += `<tr><td>${tmm}</td><td>${mm}</td><td>${x.topic}</td><td>${x.proName}</td><td>${x.conName}</td><td>${x.winner === "pro" ? "正方胜" : "反方胜"}</td><td><button class="btn-small btn-primary" onclick="showMatchDetail('${x.id}')">详情</button>${delBtn}</td></tr>`;
         });
         html += "</table>";
         document.getElementById("queryResult").innerHTML = html;
       }
 
-      // ================== 修正 renderStats（折叠展示） ==================
       function renderStats() {
         const dat = d();
         const teamStats = {};
@@ -1676,20 +1714,22 @@
           })
           .sort((a, b) => b.rate - a.rate);
 
+        // 包含所有辩手（即使0场）
         const debatersArr = Object.entries(dat.debaters)
-          .filter(([k, v]) => v.matchCount > 0)
           .map(([k, v]) => ({
             n: k,
-            avg: (v.totalScore / v.matchCount).toFixed(1),
+            avg: v.matchCount
+              ? (v.totalScore / v.matchCount).toFixed(1)
+              : "0.0",
             cnt: v.matchCount,
           }))
-          .sort((a, b) => b.avg - a.avg);
-
+          .sort(
+            (a, b) => parseFloat(b.avg) - parseFloat(a.avg) || b.cnt - a.cnt,
+          );
         const bestArr = Object.entries(dat.debaters)
           .filter(([k, v]) => v.bestCount > 0)
           .sort((a, b) => b[1].bestCount - a[1].bestCount);
 
-        // 通用折叠渲染
         function renderCollapsibleTable(
           containerId,
           data,
@@ -1707,15 +1747,11 @@
             html += renderRow(item, idx);
           });
           html += "</tbody></table>";
-          if (data.length > limit) {
-            html += `<div class="view-more-btn"><button onclick="toggleExpand('${containerId}')">${
-              isExpanded ? "收起" : `查看更多 (${data.length - limit}条)`
-            }</button></div>`;
-          }
+          if (data.length > limit)
+            html += `<div class="view-more-btn"><button onclick="toggleExpand('${containerId}')">${isExpanded ? "收起" : `查看更多 (${data.length - limit}条)`}</button></div>`;
           container.innerHTML = html;
           container.setAttribute("data-expanded", isExpanded);
         }
-
         renderCollapsibleTable(
           "teamStats",
           sortedTeams,
@@ -1732,7 +1768,6 @@
             return `<tr class="${cls}"><td>${i + 1}</td><td>${it.name}</td><td>${it.w}</td><td>${it.l}</td><td>${it.rate.toFixed(1)}%</td></tr>`;
           },
         );
-
         renderCollapsibleTable(
           "debaterRank",
           debatersArr,
@@ -1749,7 +1784,6 @@
             return `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td><td><button class="btn-small btn-primary" onclick="showDebaterDetail('${it.n}')">查看详情</button></td></tr>`;
           },
         );
-
         renderCollapsibleTable(
           "bestCount",
           bestArr,
@@ -1766,12 +1800,16 @@
             return `<tr class="${cls}"><td>${k}</td><td>${v.bestCount}</td></tr>`;
           },
         );
-
-        // 环节能力排名也单独调用（内部已支持折叠）
         renderPositionRank();
       }
+      window.toggleExpand = function (containerId) {
+        const container = document.getElementById(containerId);
+        const isExpanded = container.getAttribute("data-expanded") === "true";
+        container.setAttribute("data-expanded", !isExpanded);
+        if (containerId === "positionRank") renderPositionRank();
+        else renderStats();
+      };
 
-      // 环节能力排名（折叠版本）
       function renderPositionRank() {
         const dat = d();
         const pos = document.getElementById("positionSelect").value;
@@ -1788,16 +1826,13 @@
         const list = Object.entries(map)
           .map(([n, d]) => ({ n, avg: (d.sum / d.cnt).toFixed(2), cnt: d.cnt }))
           .sort((a, b) => b.avg - a.avg);
-
         const container = document.getElementById("positionRank");
         const isExpanded = container.getAttribute("data-expanded") === "true";
         const displayData = isExpanded ? list : list.slice(0, 5);
-
         if (list.length === 0) {
           container.innerHTML = "<p>无数据</p>";
           return;
         }
-
         let html =
           "<table><thead><tr><th>排名</th><th>辩手</th><th>场均</th><th>场次</th></tr></thead><tbody>";
         displayData.forEach((it, i) => {
@@ -1812,27 +1847,11 @@
           html += `<tr class="${cls}"><td>${i + 1}</td><td>${it.n}</td><td>${it.avg}</td><td>${it.cnt}</td></tr>`;
         });
         html += "</tbody></table>";
-
-        if (list.length > 5) {
-          html += `<div class="view-more-btn"><button onclick="toggleExpand('positionRank')">${
-            isExpanded ? "收起" : `查看更多 (${list.length - 5}条)`
-          }</button></div>`;
-        }
+        if (list.length > 5)
+          html += `<div class="view-more-btn"><button onclick="toggleExpand('positionRank')">${isExpanded ? "收起" : `查看更多 (${list.length - 5}条)`}</button></div>`;
         container.innerHTML = html;
         container.setAttribute("data-expanded", isExpanded);
       }
-
-      // 全局切换展开/收起
-      window.toggleExpand = function (containerId) {
-        const container = document.getElementById(containerId);
-        const isExpanded = container.getAttribute("data-expanded") === "true";
-        container.setAttribute("data-expanded", !isExpanded);
-        if (containerId === "positionRank") {
-          renderPositionRank();
-        } else {
-          renderStats();
-        }
-      };
 
       function deleteMatch(id) {
         if (!currentUser.isAdmin) return alert("无权操作");
@@ -1891,13 +1910,18 @@
       }
       function showDebaterDetail(name) {
         const dat = d();
-        const deb = dat.debaters[name];
-        if (!deb) return;
+        const deb = dat.debaters[name] || {
+          totalScore: 0,
+          matchCount: 0,
+          bestCount: 0,
+          grade: "",
+          position: "",
+        };
         const ps = {
-          lilun: { n: "立论", s: 0, c: 0, max: 0, min: 10 },
-          bolun: { n: "质询", s: 0, c: 0, max: 0, min: 10 },
-          ziyou: { n: "自由辩", s: 0, c: 0, max: 0, min: 10 },
-          jiebian: { n: "结辩", s: 0, c: 0, max: 0, min: 10 },
+          lilun: { n: "立论", s: 0, c: 0, max: null, min: null },
+          bolun: { n: "质询", s: 0, c: 0, max: null, min: null },
+          ziyou: { n: "自由辩", s: 0, c: 0, max: null, min: null },
+          jiebian: { n: "结辩", s: 0, c: 0, max: null, min: null },
         };
         dat.matches.forEach((m) => {
           const s = m.debaterScores[name];
@@ -1906,8 +1930,8 @@
             if (s[k] > 0) {
               ps[k].s += s[k];
               ps[k].c++;
-              ps[k].max = Math.max(ps[k].max, s[k]);
-              ps[k].min = Math.min(ps[k].min, s[k]);
+              ps[k].max = ps[k].max === null ? s[k] : Math.max(ps[k].max, s[k]);
+              ps[k].min = ps[k].min === null ? s[k] : Math.min(ps[k].min, s[k]);
             }
           });
         });
@@ -1920,12 +1944,12 @@
             best = p.n;
           }
         });
-        let html = `<h3>${name} 详情</h3><div class="info-card"><div class="info-item"><span>场次：</span><span>${deb.matchCount}</span></div><div class="info-item"><span>最佳：</span><span>${deb.bestCount}</span></div><div class="info-item"><span>场均：</span><span>${(deb.totalScore / deb.matchCount).toFixed(2)}</span></div><div class="info-item"><span>年级：</span><span>${deb.grade || "未填写"}</span></div><div class="info-item"><span>位置：</span><span>${deb.position || "未填写"}</span></div></div>`;
+        let html = `<h3>${name} 详情</h3><div class="info-card"><div class="info-item"><span>场次：</span><span>${deb.matchCount || 0}</span></div><div class="info-item"><span>最佳：</span><span>${deb.bestCount || 0}</span></div><div class="info-item"><span>场均：</span><span>${deb.matchCount ? (deb.totalScore / deb.matchCount).toFixed(2) : "0.00"}</span></div><div class="info-item"><span>成就：</span><span>${deb.position || "暂无"}</span></div></div>`;
         if (best) html += `<div class="best-position">推荐位置：${best}</div>`;
         html +=
           "<table><tr><th>辩位</th><th>场均</th><th>最高</th><th>最低</th><th>场次</th></tr>";
         Object.values(ps).forEach((p) => {
-          html += `<tr><td>${p.n}</td><td>${p.avg}</td><td>${p.max || "-"}</td><td>${p.min || "-"}</td><td>${p.c}</td></tr>`;
+          html += `<tr><td>${p.n}</td><td>${p.avg}</td><td>${p.max !== null ? p.max : "-"}</td><td>${p.min !== null ? p.min : "-"}</td><td>${p.c}</td></tr>`;
         });
         html += `</table>`;
         const p = document.getElementById("debaterDetail");
@@ -1933,6 +1957,7 @@
         p.style.display = "block";
         p.scrollIntoView({ behavior: "smooth" });
       }
+
       function exportData() {
         const blob = new Blob([localStorage.debateData], {
           type: "application/json",
@@ -1955,9 +1980,8 @@
           reader.onload = async (ev) => {
             try {
               const imported = JSON.parse(ev.target.result);
-              if (!imported.teams || !imported.matches || !imported.debaters) {
+              if (!imported.teams || !imported.matches || !imported.debaters)
                 return alert("文件格式不正确，缺少必要字段");
-              }
               localStorage.debateData = JSON.stringify(imported);
               showLoading("正在将导入的数据同步到云端...");
               try {
@@ -2038,22 +2062,21 @@
             'button[onclick="saveMatch()"]',
           );
           if (saveMatchBtn) saveMatchBtn.style.display = "none";
-          const teamManageBtns = [
+          [
             'button[onclick="createTeam()"]',
             'button[onclick="createTeamFromPanel()"]',
+            'button[onclick="renameTeam()"]',
             'button[onclick="deleteDebater()"]',
             'button[onclick="transferDebater()"]',
             'button[onclick="showAddModal()"]',
-          ];
-          teamManageBtns.forEach((sel) => {
+          ].forEach((sel) => {
             const btn = document.querySelector(sel);
             if (btn) btn.style.display = "none";
           });
-          const dataOpBtns = [
+          [
             'button[onclick="importData()"]',
             'button[onclick="clearAll()"]',
-          ];
-          dataOpBtns.forEach((sel) => {
+          ].forEach((sel) => {
             const btn = document.querySelector(sel);
             if (btn) btn.style.display = "none";
           });
